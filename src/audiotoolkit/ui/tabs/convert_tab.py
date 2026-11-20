@@ -8,7 +8,7 @@ class ConvertTab(ToolTab):
     title = "Convert / Trim"
 
     def build(self, group) -> None:
-        self.format = combo("Format", ["wav", "flac", "mp3"])
+        self.format = combo("Format", ["wav", "flac", "mp3", "alac", "m4a"])
         self.rate = combo("Sample rate", ["keep", "22050", "32000", "44100", "48000"])
         self.channels = combo("Channels", ["keep", "mono", "stereo"])
         self.loud = switch("Normalize loudness")

@@ -13,3 +13,19 @@ def clip(tmp_path_factory) -> str:
     out = tmp_path_factory.mktemp("clip") / "clip.wav"
     subprocess.run(["ffmpeg", "-y", "-nostdin", "-loglevel", "error", "-t", "10", "-i", str(SOURCE), str(out)], check=True)
     return str(out)
+
+
+def _encode(clip, tmp_path_factory, name, codec_args):
+    out = tmp_path_factory.mktemp(name) / f"{name}.m4a"
+    subprocess.run(["ffmpeg", "-y", "-nostdin", "-loglevel", "error", "-i", clip, *codec_args, str(out)], check=True)
+    return str(out)
+
+
+@pytest.fixture(scope="session")
+def clip_alac(clip, tmp_path_factory) -> str:
+    return _encode(clip, tmp_path_factory, "alac", ["-c:a", "alac"])
+
+
+@pytest.fixture(scope="session")
+def clip_aac(clip, tmp_path_factory) -> str:
+    return _encode(clip, tmp_path_factory, "aac", ["-c:a", "aac", "-b:a", "256k"])

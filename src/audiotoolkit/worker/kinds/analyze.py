@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import json
 import os
+import subprocess
 
 import numpy as np
 
@@ -26,10 +27,25 @@ def key_from_chroma(chroma: np.ndarray) -> tuple[str, float]:
     return best
 
 
+def _load(path: str):
+    """librosa/soundfile first; formats libsndfile cannot open (m4a, ALAC, AAC) are decoded by ffmpeg."""
+    import librosa
+
+    try:
+        return librosa.load(path, sr=SR, mono=True)
+    except Exception:
+        r = subprocess.run(["ffmpeg", "-nostdin", "-loglevel", "error", "-i", path, "-vn", "-f", "f32le", "-ac", "1",
+                            "-ar", str(SR), "-"], capture_output=True)
+        if r.returncode != 0:
+            lines = r.stderr.decode(errors="replace").strip().splitlines()
+            raise RuntimeError(lines[-1] if lines else f"ffmpeg exited {r.returncode}")
+        return np.frombuffer(r.stdout, dtype=np.float32), SR
+
+
 def detect(path: str) -> dict:
     import librosa
 
-    y, sr = librosa.load(path, sr=SR, mono=True)
+    y, sr = _load(path)
     if len(y) == 0 or float(np.sqrt(np.mean(y**2))) < 1e-4:
         return {"bpm": None, "bpm_candidates": [], "key": None, "key_confidence": 0.0}
     onset = librosa.onset.onset_strength(y=y, sr=sr)

@@ -7,6 +7,12 @@ import subprocess
 from audiotoolkit.core.outputs import output_path
 from audiotoolkit.core.protocol import Job, Output
 
+CODECS = {
+    "mp3": ["-c:a", "libmp3lame", "-b:a", "320k"],
+    "alac": ["-c:a", "alac"],  # lossless, in an .m4a container
+    "m4a": ["-c:a", "aac", "-b:a", "256k"],
+}
+EXTENSIONS = {"alac": "m4a"}
 _TRIM = "silenceremove=start_periods=1:start_threshold=-50dB"
 
 
@@ -28,14 +34,13 @@ def build_ffmpeg_args(src: str, dst: str, opts: dict) -> list[str]:
         args += ["-ar", str(opts["sample_rate"])]
     if opts.get("channels"):
         args += ["-ac", str(opts["channels"])]
-    if opts.get("format") == "mp3":
-        args += ["-c:a", "libmp3lame", "-b:a", "320k"]
+    args += CODECS.get(opts.get("format", "wav"), [])
     return args + [dst]
 
 
 def run(job: Job, emit) -> tuple[list[Output], dict]:
     fmt = job.opts.get("format", "wav")
-    dst = output_path(job, "audio", fmt)
+    dst = output_path(job, "audio", EXTENSIONS.get(fmt, fmt))
     os.makedirs(os.path.dirname(dst), exist_ok=True)
     emit(None, "converting")
     r = subprocess.run(build_ffmpeg_args(job.input, dst, job.opts), capture_output=True, text=True)
