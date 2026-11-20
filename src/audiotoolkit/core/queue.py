@@ -54,9 +54,12 @@ class BatchQueue:
     def add(self, paths: Iterable[str], kind: str, opts: dict) -> list[Item]:
         added = []
         for src in gather_audio(paths):
+            same = next((i for i in self.items if i.source == src), None)  # same file, other tool: same folder
             stem, song, n = Path(src).stem, Path(src).stem, 1
+            if same is not None:
+                song = same.song
             taken = {i.song for i in self.items}
-            while song in taken:
+            while same is None and song in taken:
                 n += 1
                 song = f"{stem} ({n})"
             item = Item(uuid.uuid4().hex[:8], src, song, kind, dict(opts))

@@ -59,3 +59,13 @@ def test_remove(tmp_path):
     a, b = q.add([touch(tmp_path / "a.mp3"), touch(tmp_path / "b.mp3")], "midi", {})
     q.remove(a.id)
     assert q.items == [b] and q.get(b.id) is b
+
+
+def test_same_source_shares_song_dir_across_kinds(tmp_path):
+    src = touch(tmp_path / "a" / "song.mp3")
+    other = touch(tmp_path / "b" / "song.mp3")
+    q = BatchQueue()
+    first = q.add([src], "separate", {})[0]
+    again = q.add([src], "lyrics", {})[0]
+    diff = q.add([other], "lyrics", {})[0]
+    assert first.song == again.song == "song" and diff.song == "song (2)"
