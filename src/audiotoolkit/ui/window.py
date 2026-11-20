@@ -17,6 +17,7 @@ from audiotoolkit.core.settings import Settings, save_settings
 from .bridge import APP_DIR, UiBackend
 from .queue_view import QueueView
 from .tabs import TABS
+from .tabs.chains_tab import ChainsTab
 
 USER_PRESETS = os.path.expanduser("~/.config/audio-toolkit/presets")
 
@@ -33,6 +34,9 @@ class MainWindow(Adw.ApplicationWindow):
         self.tabs: dict[str, object] = {}
         for kind, cls in TABS.items():
             self._add_tab(kind, cls())
+        self.chains = ChainsTab()
+        self._add_tab("chain", self.chains)
+        self.chains.bind(str(APP_DIR / "presets"), USER_PRESETS, self._presets_changed)
 
         header = Adw.HeaderBar()
         header.set_title_widget(Adw.ViewSwitcher(stack=self.stack, policy=Adw.ViewSwitcherPolicy.WIDE))
@@ -79,6 +83,10 @@ class MainWindow(Adw.ApplicationWindow):
         return "Output: " + os.path.basename(self.settings.out_root.rstrip("/"))
 
     # -- actions ------------------------------------------------------------------------------------------------
+
+    def _presets_changed(self, presets: dict) -> None:
+        self.presets = presets
+        self.backend.set_presets(presets)
 
     def add_paths(self, paths: list[str], kind: str) -> None:
         self.backend.add(paths, kind, self.tabs[kind].get_opts())

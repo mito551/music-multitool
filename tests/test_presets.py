@@ -50,3 +50,13 @@ def test_save_load_roundtrip(tmp_path):
 def test_invalid_file_skipped(tmp_path):
     (tmp_path / "bad.json").write_text("{not json")
     assert load_presets(str(tmp_path), str(tmp_path / "none")) == {}
+
+
+def test_delete_user_preset_only(tmp_path):
+    from audiotoolkit.core.presets import delete_preset
+
+    save_preset(str(tmp_path), Preset("My chain", (Step("convert"),)))
+    assert delete_preset(str(tmp_path), "My chain") is True
+    assert "My chain" not in load_presets(BUILTIN, str(tmp_path))
+    assert delete_preset(str(tmp_path), "My chain") is False
+    assert len(load_presets(BUILTIN, str(tmp_path))) == 4  # built-ins untouched

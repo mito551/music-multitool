@@ -63,9 +63,22 @@ def load_presets(builtin_dir: str, user_dir: str) -> dict[str, Preset]:
     return presets
 
 
+def _path(user_dir: str, name: str) -> str:
+    slug = re.sub(r"[^a-z0-9]+", "-", name.lower()).strip("-") or "preset"
+    return os.path.join(user_dir, f"{slug}.json")
+
+
 def save_preset(user_dir: str, p: Preset) -> None:
     os.makedirs(user_dir, exist_ok=True)
-    slug = re.sub(r"[^a-z0-9]+", "-", p.name.lower()).strip("-") or "preset"
     data = {"name": p.name, "steps": [{"kind": s.kind, "opts": s.opts, "input": s.input} for s in p.steps]}
-    with open(os.path.join(user_dir, f"{slug}.json"), "w") as f:
+    with open(_path(user_dir, p.name), "w") as f:
         json.dump(data, f, indent=2)
+
+
+def delete_preset(user_dir: str, name: str) -> bool:
+    """Remove a user preset (a built-in of the same name shows through again). False if there was none."""
+    try:
+        os.remove(_path(user_dir, name))
+        return True
+    except OSError:
+        return False
