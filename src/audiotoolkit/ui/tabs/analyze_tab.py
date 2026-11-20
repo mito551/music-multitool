@@ -1,8 +1,5 @@
 from __future__ import annotations
 
-from gi.repository import Gtk
-
-from ..tapper_widget import TapperWidget
 from .base import ToolTab
 
 
@@ -15,12 +12,12 @@ def result_text(result: dict) -> str:
 class AnalyzeTab(ToolTab):
     kind = "analyze"
     title = "Analyze"
+    icon = "view-continuous-symbolic"
+    has_opts = False
 
     def build(self, group) -> None:
         group.set_description("Detects tempo (BPM) and musical key. Key is a best guess; BPM may read half or double.")
         self.add_buttons()
-        self.tapper = TapperWidget()
-        self.append(self.tapper)
 
     def get_opts(self) -> dict:
         return {}

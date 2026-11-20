@@ -26,6 +26,7 @@ def _dropdown(values: list[str], current: str, on_change: Callable[[str], None])
 class ChainsTab(ToolTab):
     kind = "chain"
     title = "Chains"
+    icon = "insert-link-symbolic"
 
     def build(self, group) -> None:
         self.presets: dict[str, Preset] = {}
@@ -102,10 +103,12 @@ class ChainsTab(ToolTab):
             row = Adw.ActionRow(title=f"Step {i + 1}")
             row.add_suffix(_dropdown(list(TABS), step.kind, lambda k, i=i: self._set_kind(i, k)))
             row.add_suffix(_dropdown(ROLES, step.input, lambda r, i=i: self._set_input(i, r)))
-            for icon, tip, fn in (("emblem-system-symbolic", "Options", lambda i=i: self._edit_opts(i)),
-                                  ("go-up-symbolic", "Move up", lambda i=i: self._move(i, -1)),
-                                  ("go-down-symbolic", "Move down", lambda i=i: self._move(i, 1)),
-                                  ("user-trash-symbolic", "Remove", lambda i=i: self._remove(i))):
+            buttons = [("go-up-symbolic", "Move up", lambda i=i: self._move(i, -1)),
+                       ("go-down-symbolic", "Move down", lambda i=i: self._move(i, 1)),
+                       ("user-trash-symbolic", "Remove", lambda i=i: self._remove(i))]
+            if TABS[step.kind].has_opts:
+                buttons.insert(0, ("emblem-system-symbolic", "Options", lambda i=i: self._edit_opts(i)))
+            for icon, tip, fn in buttons:
                 b = Gtk.Button(icon_name=icon, tooltip_text=tip, valign=Gtk.Align.CENTER)
                 b.connect("clicked", lambda *_, fn=fn: fn())
                 row.add_suffix(b)
@@ -140,11 +143,11 @@ class ChainsTab(ToolTab):
 
     def _edit_opts(self, i: int) -> None:
         step = self.steps[i]
-        form = TABS[step.kind]()
+        form = TABS[step.kind](embedded=True)
         form.set_opts(step.opts)
-        apply_btn = Gtk.Button(label="Apply", halign=Gtk.Align.END, margin_bottom=12, margin_end=12)
-        apply_btn.add_css_class("suggested-action")
-        box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
+        apply_btn = Gtk.Button(label="Apply", halign=Gtk.Align.END, margin_bottom=16, margin_end=24,
+                               css_classes=["suggested-action"])
+        box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=12, margin_top=12, margin_start=24, margin_end=24)
         box.append(form)
         box.append(apply_btn)
         dialog = Adw.Dialog(title=f"Step {i + 1}: {step.kind}", child=box, content_width=480)

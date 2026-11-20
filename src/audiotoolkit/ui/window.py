@@ -1,7 +1,8 @@
-"""Main window: tool tabs on top, the batch queue below."""
+"""Main window: sidebar (tap tempo + tool list) on the left, tool form and batch queue on the right."""
 from __future__ import annotations
 
 import os
+from pathlib import Path
 
 import gi
 
@@ -16,48 +17,72 @@ from audiotoolkit.core.settings import Settings, save_settings
 
 from .bridge import APP_DIR, UiBackend
 from .queue_view import QueueView
+from .sidebar import Sidebar
 from .tabs import TABS
 from .tabs.chains_tab import ChainsTab
 
 USER_PRESETS = os.path.expanduser("~/.config/audio-toolkit/presets")
 
 
+def load_css() -> None:
+    provider = Gtk.CssProvider()
+    provider.load_from_path(str(Path(__file__).with_name("style.css")))
+    Gtk.StyleContext.add_provider_for_display(Gdk.Display.get_default(), provider, Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION)
+
+
 class MainWindow(Adw.ApplicationWindow):
     def __init__(self, app: Adw.Application, settings: Settings):
-        super().__init__(application=app, title="Audio Toolkit", default_width=900, default_height=780)
+        super().__init__(application=app, title="Audio Toolkit", default_width=1040, default_height=900)
+        load_css()
         self.settings = settings
         self.presets = load_presets(str(APP_DIR / "presets"), USER_PRESETS)
         self.backend = UiBackend(settings, self.presets, self._on_change)
         self.queue_view = QueueView(self._override_dialog)
 
-        self.stack = Adw.ViewStack()
+        self.stack = Adw.ViewStack(vhomogeneous=False)
         self.tabs: dict[str, object] = {}
+        self.sidebar = Sidebar(self._show_tab)
         for kind, cls in TABS.items():
             self._add_tab(kind, cls())
         self.chains = ChainsTab()
         self._add_tab("chain", self.chains)
         self.chains.bind(str(APP_DIR / "presets"), USER_PRESETS, self._presets_changed)
 
-        header = Adw.HeaderBar()
-        header.set_title_widget(Adw.ViewSwitcher(stack=self.stack, policy=Adw.ViewSwitcherPolicy.WIDE))
-        paned = Gtk.Paned(orientation=Gtk.Orientation.VERTICAL, position=420, shrink_start_child=False)
-        paned.set_start_child(self.stack)
-        paned.set_end_child(self._queue_panel())
-        view = Adw.ToolbarView()
-        view.add_top_bar(header)
-        view.set_content(paned)
-        self.set_content(view)
+        forms = Gtk.ScrolledWindow(child=self.stack, hscrollbar_policy=Gtk.PolicyType.NEVER, propagate_natural_height=True,
+                                   max_content_height=700)
+        main = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
+        main.append(forms)
+        main.append(self._queue_panel())
+        self.page_title = Adw.WindowTitle(title="")
+        header = Adw.HeaderBar(title_widget=self.page_title, css_classes=["flat"])
+        content = Adw.ToolbarView(content=main, hexpand=True, css_classes=["content-pane"])
+        content.add_top_bar(header)
+        drop = Gtk.DropTarget.new(Gdk.FileList, Gdk.DragAction.COPY)
+        drop.connect("drop", self._on_drop)
+        content.add_controller(drop)
+
+        root = Gtk.Box()
+        root.append(self.sidebar)
+        root.append(content)
+        self.set_content(root)
+        self.sidebar.select(next(iter(self.tabs)))
         self.connect("close-request", self._on_close)
 
     def _add_tab(self, kind: str, tab) -> None:
         tab.set_opts(self.settings.tab_opts.get(kind, {}))
         tab.on_add = lambda paths, k=kind: self.add_paths(paths, k)
         self.tabs[kind] = tab
-        self.stack.add_titled(tab, kind, tab.title)
+        self.stack.add_named(tab, kind)
+        self.sidebar.add_page(kind, tab.title, tab.icon)
+
+    def _show_tab(self, kind: str) -> None:
+        self.stack.set_visible_child_name(kind)
+        self.page_title.set_title(self.tabs[kind].title)
 
     def _queue_panel(self) -> Gtk.Box:
-        box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=6, margin_top=6, margin_bottom=12, margin_start=12, margin_end=12)
-        bar = Gtk.Box(spacing=6)
+        box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=10, vexpand=True, margin_top=8, margin_bottom=20,
+                      margin_start=24, margin_end=24)
+        bar = Gtk.Box(spacing=8)
         for label, handler in (("Run", self._run), ("Cancel", lambda *_: self.backend.cancel()),
                                ("Retry failed", lambda *_: self.backend.retry_failed()), ("Clear done", self._clear_done)):
             b = Gtk.Button(label=label)
@@ -65,18 +90,15 @@ class MainWindow(Adw.ApplicationWindow):
             if label == "Run":
                 b.add_css_class("suggested-action")
             bar.append(b)
-        spacer = Gtk.Box(hexpand=True)
-        self.out_button = Gtk.Button(label=self._out_label())
-        self.out_button.connect("clicked", self._choose_out)
+        bar.append(Gtk.Box(hexpand=True))
         skip = Gtk.Switch(active=self.settings.skip_existing, valign=Gtk.Align.CENTER)
         skip.connect("notify::active", self._skip_toggled)
-        for w in (spacer, Gtk.Label(label="Skip existing"), skip, self.out_button):
+        self.out_button = Gtk.Button(label=self._out_label())
+        self.out_button.connect("clicked", self._choose_out)
+        for w in (Gtk.Label(label="Skip existing"), skip, self.out_button):
             bar.append(w)
         box.append(bar)
         box.append(self.queue_view)
-        drop = Gtk.DropTarget.new(Gdk.FileList, Gdk.DragAction.COPY)
-        drop.connect("drop", self._on_drop)
-        box.add_controller(drop)
         return box
 
     def _out_label(self) -> str:
@@ -102,7 +124,7 @@ class MainWindow(Adw.ApplicationWindow):
     def _on_change(self, item: Item) -> None:
         self.queue_view.update(item)
         if item.kind == "analyze" and item.status is Status.DONE:  # the tapper compares against the latest analysis
-            self.tabs["analyze"].tapper.set_detected(item.result.get("bpm"))
+            self.sidebar.tapper.set_detected(item.result.get("bpm") or None)
 
     def _run(self, *_) -> None:
         self._save()
@@ -133,11 +155,11 @@ class MainWindow(Adw.ApplicationWindow):
         self._save()
 
     def _override_dialog(self, item: Item) -> None:
-        tab = TABS[item.kind]()
+        tab = TABS[item.kind](embedded=True)
         tab.set_opts(self.backend.queue.effective_opts(item))
-        apply_btn = Gtk.Button(label="Apply", halign=Gtk.Align.END, margin_bottom=12, margin_end=12)
-        apply_btn.add_css_class("suggested-action")
-        box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
+        apply_btn = Gtk.Button(label="Apply", halign=Gtk.Align.END, margin_bottom=16, margin_end=24,
+                               css_classes=["suggested-action"])
+        box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=12, margin_top=12, margin_start=24, margin_end=24)
         box.append(tab)
         box.append(apply_btn)
         dialog = Adw.Dialog(title=f"Options: {item.song}", child=box, content_width=480)

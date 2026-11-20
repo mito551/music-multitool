@@ -6,6 +6,7 @@ from .base import ToolTab, combo, combo_value, entry, set_combo
 class LyricsTab(ToolTab):
     kind = "lyrics"
     title = "Lyrics"
+    icon = "format-justify-left-symbolic"
 
     def build(self, group) -> None:
         self.size = combo("Model size", ["tiny", "base", "small", "medium", "large-v3"])

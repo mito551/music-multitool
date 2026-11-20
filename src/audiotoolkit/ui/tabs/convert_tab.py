@@ -6,6 +6,7 @@ from .base import ToolTab, combo, combo_value, set_combo, spin, switch
 class ConvertTab(ToolTab):
     kind = "convert"
     title = "Convert / Trim"
+    icon = "view-refresh-symbolic"
 
     def build(self, group) -> None:
         self.format = combo("Format", ["wav", "flac", "mp3", "alac", "m4a"])

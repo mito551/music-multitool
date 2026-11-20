@@ -7,7 +7,7 @@ import gi
 
 gi.require_version("Gtk", "4.0")
 gi.require_version("Adw", "1")
-from gi.repository import Adw, Gio, Gtk  # noqa: E402
+from gi.repository import Adw, Gio, GLib, Gtk  # noqa: E402
 
 
 def combo(title: str, labels: list[str]) -> Adw.ComboRow:
@@ -52,17 +52,24 @@ class ToolTab(Gtk.Box):
 
     kind: str = ""
     title: str = ""
+    icon: str = "image-missing"
+    has_opts: bool = True  # False: nothing to configure, so no override/step-options dialog
 
-    def __init__(self) -> None:
-        super().__init__(orientation=Gtk.Orientation.VERTICAL, spacing=12)
-        for side in ("top", "bottom", "start", "end"):
-            getattr(self, f"set_margin_{side}")(12)
+    def __init__(self, embedded: bool = False) -> None:
+        """embedded=True: the form alone, for dialogs (no Add files/folder buttons, no outer margins)."""
+        super().__init__(orientation=Gtk.Orientation.VERTICAL, spacing=18)
+        self.embedded = embedded
+        if not embedded:
+            for side, px in (("top", 24), ("bottom", 12), ("start", 24), ("end", 24)):
+                getattr(self, f"set_margin_{side}")(px)
         self.on_add: Callable[[list[str]], None] = lambda paths: None
-        self.group = Adw.PreferencesGroup(title=self.title)
+        self.group = Adw.PreferencesGroup()  # no heading: the title bar and sidebar already name the tool
         self.append(self.group)
         self.build(self.group)
 
     def add_buttons(self) -> None:
+        if self.embedded:
+            return
         box = Gtk.Box(spacing=6)
         files = Gtk.Button(label="Add files…")
         folder = Gtk.Button(label="Add folder…")
@@ -75,10 +82,17 @@ class ToolTab(Gtk.Box):
     def _pick(self, folder: bool) -> None:
         dialog = Gtk.FileDialog()
         parent = self.get_root()
+        def done(d, result):
+            try:
+                files = [d.select_folder_finish(result)] if folder else d.open_multiple_finish(result)
+            except GLib.Error:  # dialog cancelled
+                return
+            self._picked(files, result)
+
         if folder:
-            dialog.select_folder(parent, None, lambda d, r: self._picked([d.select_folder_finish(r)], r))
+            dialog.select_folder(parent, None, done)
         else:
-            dialog.open_multiple(parent, None, lambda d, r: self._picked(d.open_multiple_finish(r), r))
+            dialog.open_multiple(parent, None, done)
 
     def _picked(self, files, _result) -> None:
         self.on_add([f.get_path() for f in files if f is not None and f.get_path()])

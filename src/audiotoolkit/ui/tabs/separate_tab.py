@@ -6,6 +6,7 @@ from .base import ToolTab, combo, combo_value, set_combo, spin
 class SeparateTab(ToolTab):
     kind = "separate"
     title = "Separate"
+    icon = "view-dual-symbolic"
 
     def build(self, group) -> None:
         self.model = combo("Model", ["htdemucs", "htdemucs_ft", "htdemucs_6s", "mdx_extra"])

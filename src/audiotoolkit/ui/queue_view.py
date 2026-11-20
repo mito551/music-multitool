@@ -15,8 +15,8 @@ from audiotoolkit.core.queue import Item, Status
 from .tabs import RESULT_TEXT, TABS
 
 ICONS = {
-    Status.PENDING: "document-open-recent-symbolic", Status.RUNNING: "media-playback-start-symbolic",
-    Status.DONE: "emblem-ok-symbolic", Status.FAILED: "dialog-error-symbolic", Status.SKIPPED: "go-next-symbolic",
+    Status.PENDING: "document-open-recent-symbolic", Status.RUNNING: "process-working-symbolic",
+    Status.DONE: "object-select-symbolic", Status.FAILED: "dialog-error-symbolic", Status.SKIPPED: "go-next-symbolic",
     Status.CANCELLED: "process-stop-symbolic",
 }
 
@@ -54,13 +54,13 @@ class _Row:
         self.widget.set_subtitle(GLib.markup_escape_text(describe(item)))
         self.icon.set_from_icon_name(ICONS[item.status])
         self.bar.set_fraction(1.0 if item.status in (Status.DONE, Status.SKIPPED) else item.fraction or 0.0)
-        self.override.set_sensitive(item.status is Status.PENDING and item.kind in TABS)
+        self.override.set_sensitive(item.status is Status.PENDING and item.kind in TABS and TABS[item.kind].has_opts)
         self.folder.set_sensitive(bool(item.outputs))
 
 
 class QueueView(Gtk.ScrolledWindow):
     def __init__(self, on_override: Callable[[Item], None]):
-        super().__init__(vexpand=True, min_content_height=140)
+        super().__init__(vexpand=True, min_content_height=220)
         self._on_override = on_override
         self._rows: dict[str, _Row] = {}
         self.list = Gtk.ListBox(selection_mode=Gtk.SelectionMode.NONE)

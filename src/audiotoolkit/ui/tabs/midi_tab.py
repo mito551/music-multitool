@@ -6,6 +6,7 @@ from .base import ToolTab, combo, combo_value, set_combo
 class MidiTab(ToolTab):
     kind = "midi"
     title = "Transcribe"
+    icon = "audio-x-generic-symbolic"
 
     def build(self, group) -> None:
         self.device = combo("Device", ["auto", "cuda", "cpu"])
