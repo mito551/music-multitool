@@ -93,6 +93,8 @@ class MainWindow(Adw.ApplicationWindow):
 
     def _on_change(self, item: Item) -> None:
         self.queue_view.update(item)
+        if item.kind == "analyze" and item.status is Status.DONE:  # the tapper compares against the latest analysis
+            self.tabs["analyze"].tapper.set_detected(item.result.get("bpm"))
 
     def _run(self, *_) -> None:
         self._save()
