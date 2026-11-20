@@ -40,18 +40,22 @@ class ChainsTab(ToolTab):
         self.picker = combo("Preset", [])
         self.picker.connect("notify::selected", self._on_pick)
         group.add(self.picker)
+        group.set_hexpand(True)
+        self.remove(group)
+        buttons = Gtk.Box(spacing=8, valign=Gtk.Align.CENTER)
+        for label, handler in (("Add step", self._add_step), ("Save as…", self._save_dialog), ("Delete", self._delete)):
+            b = Gtk.Button(label=label)
+            b.connect("clicked", handler)
+            buttons.append(b)
+        top = Gtk.Box(spacing=12)
+        top.append(buttons)
+        top.append(group)
+        self.append(top)
         self.steps_box = Gtk.ListBox(selection_mode=Gtk.SelectionMode.NONE)
         self.steps_box.add_css_class("boxed-list")
         self.append(self.steps_box)
         self.status = Gtk.Label(xalign=0, wrap=True)
         self.append(self.status)
-        row = Gtk.Box(spacing=6)
-        for label, handler in (("Add step", self._add_step), ("Save as…", self._save_dialog), ("Delete", self._delete)):
-            b = Gtk.Button(label=label)
-            b.connect("clicked", handler)
-            row.append(b)
-        self.append(row)
-        self.add_buttons()
 
     # -- wiring -------------------------------------------------------------------------------------------------
 
@@ -200,8 +204,8 @@ class ChainsTab(ToolTab):
         else:
             self.status.set_label("Only your own presets can be deleted.")
 
-    def _picked(self, files, result) -> None:
+    def accept(self, paths: list[str]) -> None:
         if (reason := self._blocking_reason()):
             self.status.set_label(reason)
             return
-        super()._picked(files, result)
+        super().accept(paths)

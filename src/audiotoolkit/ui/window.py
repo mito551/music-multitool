@@ -41,20 +41,22 @@ class MainWindow(Adw.ApplicationWindow):
 
         self.stack = Adw.ViewStack(vhomogeneous=False)
         self.tabs: dict[str, object] = {}
-        self.sidebar = Sidebar(self._show_tab)
+        self.sidebar = Sidebar(self._show_tab, lambda: self._pick(False), lambda: self._pick(True))
         for kind, cls in TABS.items():
             self._add_tab(kind, cls())
         self.chains = ChainsTab()
         self._add_tab("chain", self.chains)
         self.chains.bind(str(APP_DIR / "presets"), USER_PRESETS, self._presets_changed)
 
-        forms = Gtk.ScrolledWindow(child=self.stack, hscrollbar_policy=Gtk.PolicyType.NEVER, propagate_natural_height=True,
-                                   max_content_height=700)
+        # The form area takes whatever height is left and scrolls if a form is taller; its size never depends on the
+        # visible tab, and the queue below has one fixed height for every tab.
+        forms = Gtk.ScrolledWindow(child=self.stack, hscrollbar_policy=Gtk.PolicyType.NEVER, vexpand=True,
+                                   css_classes=["form-area"])
+        forms.set_overflow(Gtk.Overflow.HIDDEN)
         main = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
         main.append(forms)
         main.append(self._queue_panel())
-        self.page_title = Adw.WindowTitle(title="")
-        header = Adw.HeaderBar(title_widget=self.page_title, css_classes=["flat"])
+        header = Adw.HeaderBar(title_widget=Gtk.Box(), css_classes=["flat"])  # window controls only
         content = Adw.ToolbarView(content=main, hexpand=True, css_classes=["content-pane"])
         content.add_top_bar(header)
         drop = Gtk.DropTarget.new(Gdk.FileList, Gdk.DragAction.COPY)
@@ -77,10 +79,9 @@ class MainWindow(Adw.ApplicationWindow):
 
     def _show_tab(self, kind: str) -> None:
         self.stack.set_visible_child_name(kind)
-        self.page_title.set_title(self.tabs[kind].title)
 
     def _queue_panel(self) -> Gtk.Box:
-        box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=10, vexpand=True, margin_top=8, margin_bottom=20,
+        box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=10, margin_top=8, margin_bottom=20,
                       margin_start=24, margin_end=24)
         bar = Gtk.Box(spacing=8)
         for label, handler in (("Run", self._run), ("Cancel", lambda *_: self.backend.cancel()),
@@ -110,6 +111,21 @@ class MainWindow(Adw.ApplicationWindow):
         self.presets = presets
         self.backend.set_presets(presets)
 
+    def _pick(self, folder: bool) -> None:
+        dialog = Gtk.FileDialog()
+
+        def done(d, result):
+            try:
+                files = [d.select_folder_finish(result)] if folder else d.open_multiple_finish(result)
+            except GLib.Error:  # dialog cancelled
+                return
+            self.tabs[self.stack.get_visible_child_name()].accept([f.get_path() for f in files if f and f.get_path()])
+
+        if folder:
+            dialog.select_folder(self, None, done)
+        else:
+            dialog.open_multiple(self, None, done)
+
     def add_paths(self, paths: list[str], kind: str) -> None:
         self.backend.add(paths, kind, self.tabs[kind].get_opts())
 
@@ -118,7 +134,7 @@ class MainWindow(Adw.ApplicationWindow):
         kind = self.stack.get_visible_child_name()
         if kind not in self.tabs:
             return False
-        self.add_paths(paths, kind)
+        self.tabs[kind].accept(paths)
         return True
 
     def _on_change(self, item: Item) -> None:

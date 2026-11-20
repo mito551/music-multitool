@@ -15,7 +15,6 @@ class SeparateTab(ToolTab):
         self.format = combo("Format", ["wav", "flac", "mp3"])
         for row in (self.model, self.shifts, self.stems, self.format):
             group.add(row)
-        self.add_buttons()
 
     def get_opts(self) -> dict:
         return {"model": combo_value(self.model), "shifts": int(self.shifts.get_value()),

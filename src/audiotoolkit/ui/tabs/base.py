@@ -67,35 +67,9 @@ class ToolTab(Gtk.Box):
         self.append(self.group)
         self.build(self.group)
 
-    def add_buttons(self) -> None:
-        if self.embedded:
-            return
-        box = Gtk.Box(spacing=6)
-        files = Gtk.Button(label="Add files…")
-        folder = Gtk.Button(label="Add folder…")
-        files.connect("clicked", lambda *_: self._pick(folder=False))
-        folder.connect("clicked", lambda *_: self._pick(folder=True))
-        box.append(files)
-        box.append(folder)
-        self.append(box)
-
-    def _pick(self, folder: bool) -> None:
-        dialog = Gtk.FileDialog()
-        parent = self.get_root()
-        def done(d, result):
-            try:
-                files = [d.select_folder_finish(result)] if folder else d.open_multiple_finish(result)
-            except GLib.Error:  # dialog cancelled
-                return
-            self._picked(files, result)
-
-        if folder:
-            dialog.select_folder(parent, None, done)
-        else:
-            dialog.open_multiple(parent, None, done)
-
-    def _picked(self, files, _result) -> None:
-        self.on_add([f.get_path() for f in files if f is not None and f.get_path()])
+    def accept(self, paths: list[str]) -> None:
+        """Files chosen in the sidebar or dropped on the window: queue them for this tool."""
+        self.on_add(paths)
 
     def build(self, group: Adw.PreferencesGroup) -> None:
         raise NotImplementedError

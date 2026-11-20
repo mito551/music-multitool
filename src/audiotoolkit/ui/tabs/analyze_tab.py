@@ -17,7 +17,6 @@ class AnalyzeTab(ToolTab):
 
     def build(self, group) -> None:
         group.set_description("Detects tempo (BPM) and musical key. Key is a best guess; BPM may read half or double.")
-        self.add_buttons()
 
     def get_opts(self) -> dict:
         return {}

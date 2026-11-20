@@ -11,7 +11,6 @@ class MidiTab(ToolTab):
     def build(self, group) -> None:
         self.device = combo("Device", ["auto", "cuda", "cpu"])
         group.add(self.device)
-        self.add_buttons()
 
     def get_opts(self) -> dict:
         return {"device": combo_value(self.device)}

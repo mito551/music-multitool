@@ -14,7 +14,6 @@ class LyricsTab(ToolTab):
         self.device = combo("Device", ["auto", "cuda", "cpu"])
         for row in (self.size, self.language, self.device):
             group.add(row)
-        self.add_buttons()
 
     def get_opts(self) -> dict:
         opts = {"model_size": combo_value(self.size), "device": combo_value(self.device)}

@@ -12,7 +12,7 @@ from .tapper_widget import TapperWidget
 
 
 class Sidebar(Gtk.WindowHandle):
-    def __init__(self, on_select: Callable[[str], None]):
+    def __init__(self, on_select: Callable[[str], None], on_files: Callable[[], None], on_folder: Callable[[], None]):
         super().__init__(width_request=240, css_classes=["sidebar-pane"])
         self._on_select = on_select
         self._kinds: dict[Gtk.ListBoxRow, str] = {}
@@ -21,11 +21,17 @@ class Sidebar(Gtk.WindowHandle):
         self.tapper.set_margin_bottom(16)
         self.tapper.set_margin_start(16)
         self.tapper.set_margin_end(16)
-        self.list = Gtk.ListBox(selection_mode=Gtk.SelectionMode.SINGLE, css_classes=["nav-list"], vexpand=True)
+        self.list = Gtk.ListBox(selection_mode=Gtk.SelectionMode.SINGLE, css_classes=["nav-list"])
         self.list.connect("row-selected", self._selected)
         box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
         box.append(self.tapper)
         box.append(self.list)
+        add = Gtk.Box(spacing=8, homogeneous=True, margin_start=12, margin_end=12, margin_top=12, margin_bottom=16)
+        for label, handler in (("Add files…", on_files), ("Add folder…", on_folder)):
+            b = Gtk.Button(label=label)
+            b.connect("clicked", lambda *_, h=handler: h())
+            add.append(b)
+        box.append(add)
         self.set_child(box)
 
     def add_page(self, kind: str, title: str, icon: str) -> None:

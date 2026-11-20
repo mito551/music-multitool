@@ -19,7 +19,6 @@ class ConvertTab(ToolTab):
         self.end = spin("End (s, 0 = end of file)", 0, 36000, 0.5, 0, 1)
         for row in (self.format, self.rate, self.channels, self.loud, self.lufs, self.trim, self.start, self.end):
             group.add(row)
-        self.add_buttons()
 
     def get_opts(self) -> dict:
         opts: dict = {"format": combo_value(self.format)}
