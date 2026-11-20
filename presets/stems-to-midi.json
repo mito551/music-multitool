@@ -1,0 +1,15 @@
+{
+  "name": "Stems → MIDI",
+  "steps": [
+    {
+      "kind": "separate",
+      "opts": {},
+      "input": "source"
+    },
+    {
+      "kind": "midi",
+      "opts": {},
+      "input": "stem:*"
+    }
+  ]
+}
