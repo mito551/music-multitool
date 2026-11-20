@@ -72,3 +72,11 @@ def test_submit_while_busy_raises():
         sup.submit(job("b"))
     sup.cancel()
     sup.close()
+
+
+def test_non_event_json_line_does_not_kill_reader():
+    c = Collector()
+    sup = Supervisor(FAKE, c)
+    sup.submit(job("a", "garbage"))
+    assert isinstance(c.wait(1), Done)
+    sup.close()

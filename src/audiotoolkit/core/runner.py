@@ -1,6 +1,8 @@
 """Drives the queue: one job in flight, skip-existing via manifests, chain expansion, cancel."""
 from __future__ import annotations
 
+import os
+from pathlib import Path
 from typing import Callable
 
 from .outputs import load_manifest, song_dir
@@ -80,8 +82,27 @@ class BatchRunner:
         self._mark(item, status, message)
         self._reset_item()
 
+    def _claim_song_dir(self, item: Item) -> str:
+        """A folder name no other source file uses, remembered on disk so it also holds across sessions."""
+        stem, n = Path(item.source).stem, 1
+        while True:
+            name = stem if n == 1 else f"{stem} ({n})"
+            marker = os.path.join(song_dir(self.out_root, name), ".source")
+            try:
+                with open(marker) as f:
+                    owner = f.read()
+            except OSError:
+                os.makedirs(os.path.dirname(marker), exist_ok=True)
+                with open(marker, "w") as f:
+                    f.write(item.source)
+                return name
+            if owner == item.source:
+                return name
+            n += 1
+
     def _begin(self, item: Item) -> None:
         self._cur = item
+        item.song = self._claim_song_dir(item)
         if item.kind == "chain":
             preset = self.presets.get(item.opts.get("preset", ""))
             if preset is None:
@@ -127,7 +148,12 @@ class BatchRunner:
                     continue
                 self._ran_any = True
                 self._inflight = job
-                self._submit(job)
+                try:
+                    self._submit(job)
+                except Exception as e:  # e.g. the worker venv is missing
+                    self._inflight = None
+                    self._finish(Status.FAILED, f"could not start worker: {e}")
+                    continue
                 return
             self._step_idx += 1
             if self._step_idx >= len(self._steps):

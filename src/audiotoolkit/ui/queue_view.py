@@ -50,6 +50,7 @@ class _Row:
 
     def refresh(self, item: Item) -> None:
         self.item = item
+        self.widget.set_title(GLib.markup_escape_text(item.song))
         self.widget.set_subtitle(GLib.markup_escape_text(describe(item)))
         self.icon.set_from_icon_name(ICONS[item.status])
         self.bar.set_fraction(1.0 if item.status in (Status.DONE, Status.SKIPPED) else item.fraction or 0.0)

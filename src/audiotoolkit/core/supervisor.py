@@ -66,7 +66,7 @@ class Supervisor:
         for line in proc.stdout:
             try:
                 ev = decode_event(line)
-            except (ValueError, KeyError):
+            except Exception:  # not an event line (stray output): ignore it, keep reading
                 continue
             if isinstance(ev, (Done, Failed)):
                 with self._lock:

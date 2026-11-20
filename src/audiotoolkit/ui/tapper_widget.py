@@ -19,6 +19,7 @@ class TapperWidget(Gtk.Box):
         self.bpm: float | None = None
         self.detected: float | None = None
         self._key = Gtk.EventControllerKey()
+        self._key.set_propagation_phase(Gtk.PropagationPhase.CAPTURE)  # before a focused button turns Space into a click
         self._key.connect("key-pressed", self._on_key)
 
         self.value = Gtk.Label(label="— BPM")

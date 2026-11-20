@@ -23,7 +23,7 @@ def test_output_path_by_role(tmp_path):
     assert output_path(j, "midi", "mid") == f"{d}/midi/My Song.mid"
     assert output_path(j, "lyrics", "srt") == f"{d}/lyrics/My Song.srt"
     assert output_path(j, "audio", "flac", name="x") == f"{d}/audio/x.flac"
-    assert output_path(j, "analysis", "json", name="ignored") == f"{d}/analysis.json"
+    assert output_path(j, "analysis", "json") == f"{d}/analysis/My Song.json"
 
 
 def test_manifest_roundtrip(tmp_path):
@@ -53,3 +53,22 @@ def test_manifest_path_differs_by_opts_and_input(tmp_path):
     assert a != manifest_path(job(tmp_path, opts={"model": "y"}))
     assert a != manifest_path(job(tmp_path, input="/in/other.mp3"))
     assert a.startswith(str(tmp_path / "My Song" / ".manifests" / "separate-"))
+
+
+def test_manifest_none_after_output_overwritten(tmp_path):
+    j = job(tmp_path)
+    f = tmp_path / "a.wav"
+    f.write_bytes(b"first")
+    write_manifest(j, [Output("audio", str(f))])
+    f.write_bytes(b"second, longer")
+    assert load_manifest(j) is None
+
+
+def test_manifest_none_after_mtime_change(tmp_path):
+    j = job(tmp_path)
+    f = tmp_path / "a.wav"
+    f.write_bytes(b"same")
+    write_manifest(j, [Output("audio", str(f))])
+    st = os.stat(f)
+    os.utime(f, ns=(st.st_atime_ns, st.st_mtime_ns + 5_000_000_000))
+    assert load_manifest(j) is None

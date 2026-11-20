@@ -8,7 +8,7 @@ from pathlib import Path
 
 from .protocol import Job, Output
 
-_SUBDIRS = {"midi": "midi", "lyrics": "lyrics", "audio": "audio"}
+_SUBDIRS = {"midi": "midi", "lyrics": "lyrics", "audio": "audio", "analysis": "analysis"}
 
 
 def song_dir(out_root: str, song: str) -> str:
@@ -16,8 +16,6 @@ def song_dir(out_root: str, song: str) -> str:
 
 
 def output_path(job: Job, role: str, ext: str, name: str | None = None) -> str:
-    if role == "analysis":
-        return os.path.join(job.out_dir, "analysis.json")
     sub = "stems" if role.startswith("stem:") else _SUBDIRS[role]
     return os.path.join(job.out_dir, sub, f"{name or Path(job.input).stem}.{ext}")
 
@@ -28,17 +26,25 @@ def manifest_path(job: Job) -> str:
     return os.path.join(job.out_dir, ".manifests", f"{job.kind}-{digest}.json")
 
 
+def _stamp(path: str) -> list[int]:
+    st = os.stat(path)
+    return [st.st_size, st.st_mtime_ns]
+
+
 def write_manifest(job: Job, outputs: list[Output]) -> None:
     path = manifest_path(job)
     os.makedirs(os.path.dirname(path), exist_ok=True)
     with open(path, "w") as f:
-        json.dump([[o.role, o.path] for o in outputs], f)
+        json.dump([[o.role, o.path, *_stamp(o.path)] for o in outputs], f)
 
 
 def load_manifest(job: Job) -> list[Output] | None:
+    """The job's outputs, or None if the manifest is missing or any output was deleted or overwritten since."""
     try:
         with open(manifest_path(job)) as f:
-            outs = [Output(r, p) for r, p in json.load(f)]
+            entries = json.load(f)
+        if any(_stamp(path) != [size, mtime] for _, path, size, mtime in entries):
+            return None
+        return [Output(role, path) for role, path, _, _ in entries]
     except (OSError, ValueError):
         return None
-    return outs if all(os.path.exists(o.path) for o in outs) else None

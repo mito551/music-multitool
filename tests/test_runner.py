@@ -146,3 +146,35 @@ def test_rerun_after_cancel_resumes_at_unfinished_step(tmp_path):
     h.runner.start()
     assert [j.kind for j in h.jobs[n:]] == ["midi"]  # separate step resumed from its manifest
     assert sum(j.kind == "separate" for j in h.jobs) == 1
+
+
+def test_same_stem_from_another_session_gets_its_own_folder(tmp_path):
+    h = Harness(tmp_path)
+    (tmp_path / "a").mkdir()
+    (tmp_path / "b").mkdir()
+    first = h.src("a/song.mp3")
+    second = h.src("b/song.mp3")
+    (a,) = h.q.add([first], "midi", {})
+    h.runner.start()
+    h.finish([("midi", str(tmp_path / "a.mid"))])
+    h.q.remove(a.id)  # Clear done, or an app restart: the queue no longer remembers /a
+    (b,) = h.q.add([second], "midi", {})
+    h.runner.start()
+    assert h.jobs[0].out_dir != h.jobs[1].out_dir and h.jobs[1].out_dir.endswith("song (2)")
+    h.finish([("midi", str(tmp_path / "b.mid"))])
+    (a2,) = h.q.add([first], "midi", {})  # the same file again goes back to its own folder
+    h.runner.start()
+    assert a2.status is Status.SKIPPED and h.jobs[0].out_dir.endswith("/song")
+
+
+def test_worker_that_cannot_start_fails_items_instead_of_sticking(tmp_path):
+    h = Harness(tmp_path)
+
+    def boom(job):
+        raise OSError("no such python")
+
+    h.runner._submit = boom
+    a, b = h.q.add([h.src("a.mp3"), h.src("b.mp3")], "midi", {})
+    h.runner.start()
+    assert a.status is Status.FAILED and "no such python" in a.message and b.status is Status.FAILED
+    assert not h.runner.running
