@@ -14,6 +14,7 @@ class AnalyzeTab(ToolTab):
     title = "Analyze"
     icon = "view-continuous-symbolic"
     has_opts = False
+    hidden = True
 
     def build(self, group) -> None:
         group.set_description("Detects tempo (BPM) and musical key. Key is a best guess; BPM may read half or double.")

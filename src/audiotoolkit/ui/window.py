@@ -16,6 +16,7 @@ from audiotoolkit.core.queue import Item, Status
 from audiotoolkit.core.settings import Settings, save_settings
 
 from .bridge import APP_DIR, UiBackend
+from .config_dialog import ConfigDialog
 from .queue_view import QueueView
 from .sidebar import Sidebar
 from .tabs import TABS
@@ -41,9 +42,9 @@ class MainWindow(Adw.ApplicationWindow):
 
         self.stack = Adw.ViewStack(vhomogeneous=False)
         self.tabs: dict[str, object] = {}
-        self.sidebar = Sidebar(self._show_tab, lambda: self._pick(False), lambda: self._pick(True))
+        self.sidebar = Sidebar(self._show_tab, lambda: self._pick(False), lambda: self._pick(True), self._detect)
         for kind, cls in TABS.items():
-            self._add_tab(kind, cls())
+            self._add_tab(kind, cls())  # hidden kinds get a tab object (chains, opts) but no sidebar entry
         self.chains = ChainsTab()
         self._add_tab("chain", self.chains)
         self.chains.bind(str(APP_DIR / "presets"), USER_PRESETS, self._presets_changed)
@@ -53,20 +54,23 @@ class MainWindow(Adw.ApplicationWindow):
         forms = Gtk.ScrolledWindow(child=self.stack, hscrollbar_policy=Gtk.PolicyType.NEVER, vexpand=True,
                                    css_classes=["form-area"])
         forms.set_overflow(Gtk.Overflow.HIDDEN)
-        main = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
-        main.append(forms)
-        main.append(self._queue_panel())
+        # Both dividers drag; the sizes are saved with the settings. The queue keeps its height when the window grows.
+        self.main = Gtk.Paned(orientation=Gtk.Orientation.VERTICAL, shrink_start_child=False, shrink_end_child=False,
+                              resize_start_child=True, resize_end_child=False, start_child=forms,
+                              end_child=self._queue_panel(), position=900 - 48 - settings.queue_height)
         header = Adw.HeaderBar(title_widget=Gtk.Box(), css_classes=["flat"])  # window controls only
-        content = Adw.ToolbarView(content=main, hexpand=True, css_classes=["content-pane"])
+        gear = Gtk.Button(icon_name="emblem-system-symbolic", tooltip_text="Settings", css_classes=["flat"])
+        gear.connect("clicked", lambda *_: ConfigDialog(self.settings, self._config_changed).present(self))
+        header.pack_end(gear)
+        content = Adw.ToolbarView(content=self.main, hexpand=True, css_classes=["content-pane"])
         content.add_top_bar(header)
         drop = Gtk.DropTarget.new(Gdk.FileList, Gdk.DragAction.COPY)
         drop.connect("drop", self._on_drop)
         content.add_controller(drop)
 
-        root = Gtk.Box()
-        root.append(self.sidebar)
-        root.append(content)
-        self.set_content(root)
+        self.root = Gtk.Paned(shrink_start_child=False, shrink_end_child=False, resize_start_child=False,
+                              start_child=self.sidebar, end_child=content, position=settings.sidebar_width)
+        self.set_content(self.root)
         self.sidebar.select(next(iter(self.tabs)))
         self.connect("close-request", self._on_close)
 
@@ -74,8 +78,9 @@ class MainWindow(Adw.ApplicationWindow):
         tab.set_opts(self.settings.tab_opts.get(kind, {}))
         tab.on_add = lambda paths, k=kind: self.add_paths(paths, k)
         self.tabs[kind] = tab
-        self.stack.add_named(tab, kind)
-        self.sidebar.add_page(kind, tab.title, tab.icon)
+        if not tab.hidden:
+            self.stack.add_named(tab, kind)
+            self.sidebar.add_page(kind, tab.title, tab.icon)
 
     def _show_tab(self, kind: str) -> None:
         self.stack.set_visible_child_name(kind)
@@ -139,8 +144,26 @@ class MainWindow(Adw.ApplicationWindow):
 
     def _on_change(self, item: Item) -> None:
         self.queue_view.update(item)
-        if item.kind == "analyze" and item.status is Status.DONE:  # the tapper compares against the latest analysis
+        if item.kind == "analyze" and item.status is Status.DONE:  # the sidebar shows the latest analysis
             self.sidebar.tapper.set_detected(item.result.get("bpm") or None)
+            self.sidebar.set_key(item.result.get("key"), item.result.get("key_confidence", 0.0))
+
+    def _detect(self) -> None:
+        dialog = Gtk.FileDialog(title="Detect BPM and key")
+
+        def done(d, result):
+            try:
+                f = d.open_finish(result)
+            except GLib.Error:
+                return
+            if self.backend.add([f.get_path()], "analyze", {}):
+                self._run()
+
+        dialog.open(self, None, done)
+
+    def _config_changed(self) -> None:
+        self.out_button.set_label(self._out_label())
+        self._save()
 
     def _run(self, *_) -> None:
         self._save()
@@ -189,6 +212,9 @@ class MainWindow(Adw.ApplicationWindow):
 
     def _save(self) -> None:
         self.settings.tab_opts = {k: t.get_opts() for k, t in self.tabs.items()}
+        self.settings.sidebar_width = self.root.get_position()
+        if self.main.get_height() > 0:
+            self.settings.queue_height = max(80, self.main.get_height() - self.main.get_position())
         save_settings(self.settings)
         self.backend.update_settings(self.settings)
 

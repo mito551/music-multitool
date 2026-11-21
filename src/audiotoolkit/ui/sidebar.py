@@ -12,8 +12,9 @@ from .tapper_widget import TapperWidget
 
 
 class Sidebar(Gtk.WindowHandle):
-    def __init__(self, on_select: Callable[[str], None], on_files: Callable[[], None], on_folder: Callable[[], None]):
-        super().__init__(width_request=240, css_classes=["sidebar-pane"])
+    def __init__(self, on_select: Callable[[str], None], on_files: Callable[[], None], on_folder: Callable[[], None],
+                 on_detect: Callable[[], None] = lambda: None):
+        super().__init__(width_request=200, css_classes=["sidebar-pane"])
         self._on_select = on_select
         self._kinds: dict[Gtk.ListBoxRow, str] = {}
         self.tapper = TapperWidget()
@@ -21,10 +22,17 @@ class Sidebar(Gtk.WindowHandle):
         self.tapper.set_margin_bottom(16)
         self.tapper.set_margin_start(16)
         self.tapper.set_margin_end(16)
+        self.key = Gtk.Label(label="Key: —", xalign=0, margin_start=16, margin_end=16, margin_bottom=12,
+                             css_classes=["title-3"])
+        detect = Gtk.Button(label="Detect BPM & key…", margin_start=16, margin_end=16, margin_bottom=16,
+                            tooltip_text="Analyze one audio file (a few seconds)")
+        detect.connect("clicked", lambda *_: on_detect())
         self.list = Gtk.ListBox(selection_mode=Gtk.SelectionMode.SINGLE, css_classes=["nav-list"])
         self.list.connect("row-selected", self._selected)
         box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
         box.append(self.tapper)
+        box.append(self.key)
+        box.append(detect)
         box.append(self.list)
         add = Gtk.Box(spacing=8, homogeneous=True, margin_start=12, margin_end=12, margin_top=12, margin_bottom=16)
         for label, handler in (("Add files…", on_files), ("Add folder…", on_folder)):
@@ -42,6 +50,9 @@ class Sidebar(Gtk.WindowHandle):
         row.set_child(content)
         self._kinds[row] = kind
         self.list.append(row)
+
+    def set_key(self, key: str | None, confidence: float = 0.0) -> None:
+        self.key.set_label(f"Key: {key} ({confidence:.0%})" if key else "Key: —")
 
     def select(self, kind: str) -> None:
         for row, k in self._kinds.items():

@@ -59,7 +59,10 @@ class ChainsTab(ToolTab):
         self.steps_box.add_css_class("boxed-list")
         self.append(self.steps_box)
         self.status = Gtk.Label(xalign=0, wrap=True)
-        self.append(self.status)
+        pill = Gtk.Box(spacing=6, halign=Gtk.Align.START, css_classes=["status-pill"])
+        pill.append(Gtk.Label(label="Status:", css_classes=["heading"]))
+        pill.append(self.status)
+        self.append(pill)
 
     # -- wiring -------------------------------------------------------------------------------------------------
 

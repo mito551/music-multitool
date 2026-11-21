@@ -14,6 +14,11 @@ class Settings:
     skip_existing: bool = True
     device: str = "auto"
     tab_opts: dict = field(default_factory=dict)
+    repos: dict = field(default_factory=dict)  # name -> local checkout; missing names fall back to ../<name>
+    worker_python: str = ""  # empty: the app's own .venv
+    extra_path: str = ""  # directories prepended to the worker's PATH (ffmpeg, poppler)
+    sidebar_width: int = 240
+    queue_height: int = 240
 
 
 def load_settings(path: str | None = None) -> Settings:

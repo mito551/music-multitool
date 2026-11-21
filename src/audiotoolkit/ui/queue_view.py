@@ -14,7 +14,6 @@ from audiotoolkit.core.queue import Item, Status
 
 from .tabs import RESULT_TEXT, TABS
 
-QUEUE_HEIGHT = 240  # same on every tab
 ICONS = {
     Status.PENDING: "document-open-recent-symbolic", Status.RUNNING: "process-working-symbolic",
     Status.DONE: "object-select-symbolic", Status.FAILED: "dialog-error-symbolic", Status.SKIPPED: "go-next-symbolic",
@@ -61,7 +60,7 @@ class _Row:
 
 class QueueView(Gtk.ScrolledWindow):
     def __init__(self, on_override: Callable[[Item], None]):
-        super().__init__(vexpand=False, min_content_height=QUEUE_HEIGHT, max_content_height=QUEUE_HEIGHT)
+        super().__init__(vexpand=True, min_content_height=80)
         self._on_override = on_override
         self._rows: dict[str, _Row] = {}
         self.list = Gtk.ListBox(selection_mode=Gtk.SelectionMode.NONE)

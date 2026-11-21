@@ -10,13 +10,17 @@ from .protocol import Done, Event, Failed, Job, decode_event, encode_job
 
 
 class Supervisor:
-    def __init__(self, worker_cmd: list[str], on_event: Callable[[Event], None]):
+    def __init__(self, worker_cmd: list[str], on_event: Callable[[Event], None], env: dict | None = None):
         self._cmd = worker_cmd
+        self._env = env  # None: inherit; applies from the next worker start
         self._on_event = on_event  # called from a reader thread, never with the lock held
         self._lock = threading.Lock()
         self._proc: subprocess.Popen | None = None
         self._job_id: str | None = None
         self._stderr: deque[str] = deque(maxlen=20)
+
+    def set_launch(self, cmd: list[str], env: dict | None) -> None:
+        self._cmd, self._env = cmd, env
 
     @property
     def busy(self) -> bool:
@@ -52,7 +56,7 @@ class Supervisor:
 
     def _start(self) -> None:
         proc = subprocess.Popen(self._cmd, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
-                                text=True, bufsize=1)
+                                text=True, bufsize=1, env=self._env)
         self._proc = proc
         err = threading.Thread(target=self._read_stderr, args=(proc,), daemon=True)
         err.start()
