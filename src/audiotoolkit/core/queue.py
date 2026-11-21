@@ -11,6 +11,7 @@ from typing import Iterable
 from .protocol import Output
 
 AUDIO_EXTS = {".wav", ".mp3", ".flac", ".ogg", ".opus", ".m4a", ".aac", ".aiff"}
+SYNTHV_EXT = ".synthv.txt"  # lyrics tool, reverse direction: SynthV lyrics back to plain text
 SCORE_EXTS = {".pdf", ".png", ".jpg", ".jpeg", ".tif", ".tiff", ".bmp"}
 
 
@@ -42,8 +43,8 @@ def gather_audio(paths: Iterable[str], exts: set[str] = AUDIO_EXTS) -> list[str]
     found: list[str] = []
     for p in paths:
         if os.path.isdir(p):
-            found += sorted(str(f) for f in Path(p).rglob("*") if f.is_file() and f.suffix.lower() in exts)
-        elif Path(p).suffix.lower() in exts:
+            found += sorted(str(f) for f in Path(p).rglob("*") if f.is_file() and f.name.lower().endswith(tuple(exts)))
+        elif Path(p).name.lower().endswith(tuple(exts)):
             found.append(p)
     return found
 
@@ -54,9 +55,11 @@ class BatchQueue:
 
     def add(self, paths: Iterable[str], kind: str, opts: dict) -> list[Item]:
         added = []
-        for src in gather_audio(paths, SCORE_EXTS if kind == "score" else AUDIO_EXTS):
+        exts = {"score": SCORE_EXTS, "lyrics": AUDIO_EXTS | {SYNTHV_EXT}}.get(kind, AUDIO_EXTS)
+        for src in gather_audio(paths, exts):
             same = next((i for i in self.items if i.source == src), None)  # same file, other tool: same folder
-            stem, song, n = Path(src).stem, Path(src).stem, 1
+            stem = Path(src).stem.removesuffix(".synthv")
+            song, n = stem, 1
             if same is not None:
                 song = same.song
             taken = {i.song for i in self.items}
