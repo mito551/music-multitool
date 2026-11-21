@@ -3,12 +3,6 @@ from __future__ import annotations
 from .base import ToolTab
 
 
-def result_text(result: dict) -> str:
-    if result.get("bpm") is None:
-        return "no tempo/key found"
-    return f"BPM {result['bpm']:.1f} · {result['key']} ({result['key_confidence']:.0%})"
-
-
 class AnalyzeTab(ToolTab):
     kind = "analyze"
     title = "Analyze"

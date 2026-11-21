@@ -80,6 +80,11 @@ class ConfigView(Gtk.Box):
         dev.set_selected(devices.index(self.s.device) if self.s.device in devices else 0)
         dev.connect("notify::selected", lambda r, _p: (setattr(self.s, "device", devices[r.get_selected()]), self._changed()))
         g.add(dev)
+        uis = ["auto", "gtk", "qt"]
+        ui = Adw.ComboRow(title="Interface (restart to apply)", model=Gtk.StringList.new(uis))
+        ui.set_selected(uis.index(self.s.frontend) if self.s.frontend in uis else 0)
+        ui.connect("notify::selected", lambda r, _p: (setattr(self.s, "frontend", uis[r.get_selected()]), self._changed()))
+        g.add(ui)
         return page
 
     def _repos(self) -> Adw.PreferencesPage:

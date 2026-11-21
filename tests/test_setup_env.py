@@ -9,7 +9,7 @@ def labels(steps):
 
 
 def test_plan_without_repos_builds_env_and_installs_base(tmp_path):
-    steps = plan(Settings(), "/usr/bin/python3", tmp_path / "venv")
+    steps = plan(Settings(), "/usr/bin/python3", tmp_path / "venv", windows=False)
     assert labels(steps)[0] == "Creating the environment" and steps[0][1][:3] == ["/usr/bin/python3", "-m", "venv"]
     assert not any(label.startswith(("Installing demucs", "Cloning")) for label in labels(steps))
     assert labels(steps)[-1] == "Pinning PyAV"
@@ -42,3 +42,17 @@ def test_run_plan_stops_at_first_failure():
     err = run_plan([("ok", ["true"]), ("bad", ["sh", "-c", "echo boom >&2; exit 3"]), ("never", ["true"])], seen.append)
     assert err == "bad: boom" and seen == ["ok", "bad"]
     assert run_plan([("ok", ["true"])], seen.append) is None
+
+
+def test_windows_with_nvidia_gets_cuda_torch(tmp_path):
+    steps = dict(plan(Settings(), "x", tmp_path / "v", windows=True, nvidia=True))
+    assert "--index-url" in steps["Installing torch (CUDA)"] and "cu126" in steps["Installing torch (CUDA)"][-1]
+
+
+def test_windows_without_nvidia_says_cpu(tmp_path):
+    names = labels(plan(Settings(), "x", tmp_path / "v", windows=True, nvidia=False))
+    assert any("CPU only" in n for n in names) and not any("(CUDA)" in n for n in names)
+
+
+def test_linux_has_no_separate_torch_step(tmp_path):
+    assert not any("torch (" in n for n in labels(plan(Settings(), "x", tmp_path / "v", windows=False, nvidia=True)))

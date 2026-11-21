@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import os
+import shutil
 import subprocess
 import sys
 from pathlib import Path
@@ -12,9 +13,12 @@ from .settings import Settings
 DATA_DIR = Path(os.environ.get("XDG_DATA_HOME") or Path.home() / ".local" / "share") / "audio-toolkit"
 WORKER_VENV = DATA_DIR / "venv"
 REPOS = ("demucs", "dettato", "copisteria")
-# From PyPI. CUDA libraries only exist for Linux; PyAV is pinned because faster-whisper breaks on >= 17.
+# From PyPI. PyAV is pinned because faster-whisper breaks on >= 17.
+CUDA_LIBS = 'sys_platform == "linux" or sys_platform == "win32"'
 BASE = ["torch", "torchaudio", "faster-whisper", "librosa", "soundfile", "huggingface_hub",
-        'nvidia-cublas-cu12; sys_platform == "linux"', 'nvidia-cudnn-cu12; sys_platform == "linux"']
+        f"nvidia-cublas-cu12; {CUDA_LIBS}", f"nvidia-cudnn-cu12; {CUDA_LIBS}"]
+# PyPI's Linux torch already has CUDA; on Windows it is CPU-only, so NVIDIA machines take PyTorch's own CUDA wheels.
+TORCH_CUDA_INDEX = "https://download.pytorch.org/whl/cu126"
 PINS = ["av>=14,<17"]
 
 Step = tuple[str, list[str]]
@@ -40,15 +44,26 @@ def local_checkout(settings: Settings, name: str) -> Path | None:
     return checkout_dir(name) if is_url(spec) else Path(spec).expanduser()
 
 
-def plan(settings: Settings, base_python: str = sys.executable, venv: Path = WORKER_VENV) -> list[Step]:
+def has_nvidia() -> bool:
+    return shutil.which("nvidia-smi") is not None
+
+
+def plan(settings: Settings, base_python: str = sys.executable, venv: Path = WORKER_VENV,
+         windows: bool = os.name == "nt", nvidia: bool | None = None) -> list[Step]:
     """Steps to make the worker environment match the settings. Re-running only repeats what is needed."""
+    nvidia = has_nvidia() if nvidia is None else nvidia
     python = settings.worker_python or str(venv_python(venv))
     pip = [python, "-m", "pip", "install", "-q"]
     steps: list[Step] = []
     if not settings.worker_python and not Path(python).is_file():
         steps.append(("Creating the environment", [base_python, "-m", "venv", str(venv)]))
     steps.append(("Updating pip", [*pip, "-U", "pip"]))
-    steps.append(("Installing torch, whisper, librosa…", [*pip, *BASE]))
+    if windows:
+        if nvidia:
+            steps.append(("Installing torch (CUDA)", [*pip, "torch", "torchaudio", "--index-url", TORCH_CUDA_INDEX]))
+        else:
+            steps.append(("Installing torch (CPU only: no NVIDIA GPU found)", [*pip, "torch", "torchaudio"]))
+    steps.append(("Installing whisper, librosa…", [*pip, *BASE]))
     for name in REPOS:
         spec = settings.repos.get(name, "").strip()
         if not spec:

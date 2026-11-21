@@ -37,6 +37,16 @@ def _preload_cuda_libs() -> None:
     import glob
     import importlib.util
 
+    if os.name == "nt":  # the wheels put DLLs in nvidia/*/bin; Windows only finds them in registered directories
+        for pkg in ("nvidia.cublas", "nvidia.cudnn"):
+            try:
+                spec = importlib.util.find_spec(pkg)
+            except ModuleNotFoundError:
+                continue
+            for loc in (spec.submodule_search_locations or []) if spec else []:
+                if os.path.isdir(os.path.join(loc, "bin")):
+                    os.add_dll_directory(os.path.join(loc, "bin"))
+        return
     for pkg, pattern in (("nvidia.cublas", "libcublas*.so.12"), ("nvidia.cudnn", "libcudnn*.so.9")):
         try:
             spec = importlib.util.find_spec(pkg)

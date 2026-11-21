@@ -7,13 +7,13 @@ import sys
 from pathlib import Path
 
 APP_ID = "local.audiotoolkit.AudioToolkit"
-HERE = Path(__file__).resolve().parent
+HERE = Path(__file__).resolve().parent  # the .desktop template and icon sit beside this module
 
 
 def launcher() -> str:
     sibling = Path(sys.executable).with_name("audio-toolkit")  # next to the interpreter of a venv/pipx install
     exe = shutil.which("audio-toolkit") or (str(sibling) if sibling.is_file() else None)
-    return exe or f"{sys.executable} -m audiotoolkit.ui"
+    return exe or f"{sys.executable} -m audiotoolkit"
 
 
 def install(data_home: Path | None = None) -> Path:
