@@ -3,7 +3,7 @@ from __future__ import annotations
 
 import time
 
-from PySide6.QtCore import Qt
+from PySide6.QtCore import QSize, Qt
 from PySide6.QtGui import QGuiApplication
 from PySide6.QtWidgets import QHBoxLayout, QLabel, QPushButton, QToolButton, QVBoxLayout, QWidget
 
@@ -18,7 +18,7 @@ class TapperWidget(QWidget):
         self.tapper = Tapper()
         self.bpm: float | None = None
         self.detected: float | None = None
-        tap = QPushButton("TAP", objectName="tap", focusPolicy=Qt.NoFocus)  # Qt.NoFocus: Space must tap, not click the button
+        tap = QPushButton("TAP", objectName="tap", focusPolicy=Qt.NoFocus, fixedSize=QSize(76, 76))  # Qt.NoFocus: Space must tap, not click the button
         tap.clicked.connect(lambda: self.tap_now())
         self.value = QLabel("BPM: —", objectName="bpmValue")
         self.taps = QLabel("Tap or press Space", enabled=False)

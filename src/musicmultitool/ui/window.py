@@ -11,12 +11,13 @@ gi.require_version("Gtk", "4.0")
 gi.require_version("Adw", "1")
 from gi.repository import Adw, Gdk, GLib, Gtk  # noqa: E402
 
+from musicmultitool.core.components import installed
 from musicmultitool.core.paths import user_presets_dir
 from musicmultitool.core.presets import load_presets
 from musicmultitool.core.queue import Item, Status
 from musicmultitool.core.settings import Settings, save_settings
 
-from .bridge import PRESETS_DIR, UiBackend
+from .bridge import PRESETS_DIR, UiBackend, worker_ready
 from .config_dialog import ConfigView
 from .queue_view import QueueView
 from .sidebar import Sidebar
@@ -49,7 +50,8 @@ class MainWindow(Adw.ApplicationWindow):
         self.chains = ChainsTab()
         self._add_tab("chain", self.chains)
         self.chains.bind(str(PRESETS_DIR), USER_PRESETS, self._presets_changed)
-        self.stack.add_named(ConfigView(settings, self._config_changed, self.backend.close), "settings")
+        self.config = ConfigView(settings, self._config_changed, self.backend.close)
+        self.stack.add_named(self.config, "settings")
         self.sidebar.add_page("settings", "Settings", "emblem-system-symbolic")
 
         # The form area takes whatever height is left and scrolls if a form is taller; its size never depends on the
@@ -72,6 +74,9 @@ class MainWindow(Adw.ApplicationWindow):
                               start_child=self.sidebar, end_child=content, position=settings.sidebar_width)
         self.set_content(self.root)
         self.sidebar.select(next(iter(self.tabs)))
+        if not installed() and not worker_ready(settings):  # first run: nothing is installed unasked, so offer the choice
+            self.sidebar.select("settings")
+            self.config.show_components()
         self.connect("close-request", self._on_close)
 
     def _add_tab(self, kind: str, tab) -> None:

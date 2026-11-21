@@ -9,15 +9,16 @@ from pathlib import Path
 from typing import Callable
 
 from PySide6.QtCore import Signal
-from PySide6.QtWidgets import (QCheckBox, QMessageBox, QComboBox, QFormLayout, QGroupBox, QHBoxLayout, QLabel, QLineEdit, QPushButton,
+from PySide6.QtWidgets import (QCheckBox, QComboBox, QFormLayout, QGroupBox, QHBoxLayout, QLabel, QLineEdit, QMessageBox, QPushButton,
                                QTabWidget, QVBoxLayout, QWidget)
 
 from musicmultitool.core.backend import repo_path, worker_cmd
+from musicmultitool.core.components import BY_ID, COMPONENTS, IDS, estimate_mb, human, installed
 from musicmultitool.core.paths import data_dir
 from musicmultitool.core.proc import QUIET, TEXT
 from musicmultitool.core.provision import data_size, remove_data
 from musicmultitool.core.settings import Settings
-from musicmultitool.core.setup_env import REPOS, local_checkout, plan, run_plan
+from musicmultitool.core.setup_env import REPOS, has_nvidia, local_checkout, plan, run_plan
 from musicmultitool.core.tools import DEVICES
 
 # copisteria weights relative to its checkout, and the Hugging Face repo each one comes from
@@ -36,8 +37,9 @@ class ConfigView(QWidget):
         self.s, self._changed, self._stop_worker = settings, on_changed, stop_worker
         self.note = QLabel(wordWrap=True, enabled=False)
         tabs = QTabWidget()
-        for title, build in (("General", self._general), ("Repos", self._repos), ("Models", self._models),
-                             ("Paths", self._paths)):
+        self.tabs = tabs
+        for title, build in (("Components", self._components), ("General", self._general), ("Repos", self._repos),
+                             ("Models", self._models), ("Paths", self._paths)):
             tabs.addTab(build(), title)
         lay = QVBoxLayout(self)
         lay.addWidget(tabs, 1)
@@ -92,16 +94,72 @@ class ConfigView(QWidget):
                                 "under ~/.local/share/music-multitool/repos). Leave a field empty to skip that tool.")
         for name in REPOS:
             self._entry(form, f"{name}: folder or git URL", repo_path(self.s, name), "repos", name)
-        box = QGroupBox("Worker environment")
-        row = QHBoxLayout(box)
-        self.env_label = QLabel(wordWrap=True)
-        self.env_btn = QPushButton("Set up / update")
+        return page
+
+    def show_components(self) -> None:
+        self.tabs.setCurrentIndex(0)
+
+    def _components(self) -> QWidget:
+        page, form = self._page("Nothing heavy is installed until you choose it. Sizes are approximate disk use; "
+                                "downloads are smaller. Tick what you want, then press Install.")
+        lay = page.body  # type: ignore[attr-defined]
+        windows = os.name == "nt"
+        self._gpu = has_nvidia()
+        if self._gpu:
+            gpu = QCheckBox("Use the NVIDIA GPU (CUDA build of PyTorch: much faster, several GB larger)",
+                            checked=self.s.use_gpu)
+            gpu.toggled.connect(lambda on: (setattr(self.s, "use_gpu", on), self._changed(), self._summary()))
+            lay.insertWidget(1, gpu)
+        else:
+            lay.insertWidget(1, QLabel("No NVIDIA GPU found: PyTorch will be the smaller CPU-only build, and slower.",
+                                       enabled=False))
+        done = set(installed())
+        if not self.s.components:
+            self.s.components = sorted(done)
+        self._boxes: dict[str, QCheckBox] = {}
+        for c in COMPONENTS:
+            box = QCheckBox(c.name.replace("&", "&&"), checked=c.id in self.s.components)
+            box.setStyleSheet("font-weight: bold")
+            box.toggled.connect(lambda on, cid=c.id: self._pick(cid, on))
+            self._boxes[c.id] = box
+            lines = [c.function]
+            if c.note:
+                lines.append(c.note)
+            if c.needs_torch:
+                lines.append("Needs PyTorch (shared with the other tools that use it).")
+            if c.repo and not self.s.repos.get(c.repo, "").strip():
+                lines.append(f"Needs a {c.repo} folder or git URL on the Repos tab.")
+            size = QLabel(f"≈ {human(c.mb)}" + ("   ✓ installed" if c.id in done else ""))
+            row = QHBoxLayout()
+            row.addWidget(box, 1)
+            row.addWidget(size)
+            lay.insertLayout(lay.count() - 1, row)
+            lay.insertWidget(lay.count() - 1, QLabel("\n".join(lines), wordWrap=True, enabled=False, indent=22))
+        self.summary = QLabel(wordWrap=True)
+        self.env_label = QLabel(wordWrap=True, enabled=False)
+        self.env_btn = QPushButton("Install selected")
         self.env_btn.clicked.connect(self._setup_env)
-        row.addWidget(self.env_label, 1)
-        row.addWidget(self.env_btn)
-        page.body.insertWidget(page.body.count() - 1, box)  # type: ignore[attr-defined]
+        lay.insertWidget(lay.count() - 1, self.summary)
+        lay.insertWidget(lay.count() - 1, self.env_btn)
+        lay.insertWidget(lay.count() - 1, self.env_label)
+        self._summary()
         self._env_status()
         return page
+
+    def _pick(self, cid: str, on: bool) -> None:
+        chosen = set(self.s.components)
+        (chosen.add if on else chosen.discard)(cid)
+        self.s.components = [i for i in IDS if i in chosen]
+        self._changed()
+        self._summary()
+
+    def _summary(self) -> None:
+        pending = [i for i in self.s.components if i not in installed()]
+        gpu = self.s.use_gpu and self._gpu
+        mb = estimate_mb(pending, gpu, os.name == "nt")
+        self.summary.setText(f"To install now: {', '.join(BY_ID[i].name for i in pending)} — about {human(mb)} on disk."
+                             if pending else "Nothing selected to install.")
+        self.env_btn.setEnabled(bool(pending))
 
     def _env_status(self, text: str = "") -> None:
         python = worker_cmd(self.s)[0]
@@ -111,21 +169,22 @@ class ConfigView(QWidget):
         self.env_btn.setEnabled(False)
 
         def work() -> None:
-            err = run_plan(plan(self.s), lambda label: self._progress.emit(label + "…"))
+            err = run_plan(plan(self.s, self.s.components), lambda label: self._progress.emit(label + "…"))
             self._finished.emit("env", err or "")
 
         threading.Thread(target=work, daemon=True).start()
 
     def _job_done(self, job: str, err: str) -> None:
         if job == "env":
-            self.env_btn.setEnabled(True)
             self._env_status("Failed: " + err if err else "")
+            self._summary()
         if job == "model":
             self._rebuild_models()
         if job == "delete":
             self.delete_btn.setEnabled(True)
             self._data_status()
             self._env_status()
+            self._summary()
             self._rebuild_models()
         self.note.setText(err[:200])
 

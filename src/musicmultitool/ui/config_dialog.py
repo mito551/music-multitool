@@ -14,11 +14,12 @@ gi.require_version("Gtk", "4.0")
 gi.require_version("Adw", "1")
 from gi.repository import Adw, GLib, Gtk  # noqa: E402
 
+from musicmultitool.core.components import BY_ID, COMPONENTS, IDS, estimate_mb, human, installed
 from musicmultitool.core.paths import data_dir
 from musicmultitool.core.provision import data_size, remove_data
 from musicmultitool.core.settings import Settings
 
-from musicmultitool.core.setup_env import REPOS, local_checkout, plan, run_plan
+from musicmultitool.core.setup_env import REPOS, has_nvidia, local_checkout, plan, run_plan
 
 from .bridge import repo_path, worker_cmd
 
@@ -41,8 +42,8 @@ class ConfigView(Gtk.Box):
     def __init__(self, settings: Settings, on_changed: Callable[[], None], stop_worker: Callable[[], None]):
         super().__init__(orientation=Gtk.Orientation.VERTICAL, spacing=6)
         self.s, self._changed, self._stop_worker = settings, on_changed, stop_worker
-        stack = Adw.ViewStack()
-        for page in (self._general(), self._repos(), self._models(), self._paths()):
+        stack = self.stack = Adw.ViewStack()
+        for page in (self._components(), self._general(), self._repos(), self._models(), self._paths()):
             stack.add_titled_with_icon(page, page.get_title().lower(), page.get_title(), page.get_icon_name())
         switcher = Adw.ViewSwitcher(stack=stack, policy=Adw.ViewSwitcherPolicy.WIDE, halign=Gtk.Align.CENTER, margin_top=12)
         self.note = Gtk.Label(xalign=0, css_classes=["dim-label"], margin_start=24, margin_bottom=6)  # replaces toasts
@@ -95,16 +96,67 @@ class ConfigView(Gtk.Box):
                              "under ~/.local/share/music-multitool/repos). Leave a field empty to skip that tool.")
         for name in REPOS:
             self._entry(g, f"{name}: folder or git URL", repo_path(self.s, name), "repos", name)
-        env = Adw.PreferencesGroup(title="Worker environment",
-                                   description="Python environment with torch, whisper, librosa and the repos above.")
-        page.add(env)
-        self.env_row = Adw.ActionRow(title="Worker environment")
-        self.env_btn = Gtk.Button(label="Set up / update", valign=Gtk.Align.CENTER, css_classes=["suggested-action"])
+        return page
+
+    def show_components(self) -> None:
+        self.stack.set_visible_child_name("components")
+
+    def _components(self) -> Adw.PreferencesPage:
+        page, g = self._page("Components", "package-x-generic-symbolic",
+                             "Nothing heavy is installed until you choose it. Sizes are approximate disk use; downloads "
+                             "are smaller. Switch on what you want, then press Install.")
+        self._gpu = has_nvidia()
+        if self._gpu:
+            row = Adw.SwitchRow(title="Use the NVIDIA GPU", subtitle="CUDA build of PyTorch: much faster, several GB larger",
+                                active=self.s.use_gpu)
+            row.connect("notify::active", lambda r, _p: (setattr(self.s, "use_gpu", r.get_active()), self._changed(),
+                                                         self._summary()))
+        else:
+            row = Adw.ActionRow(title="No NVIDIA GPU found", subtitle="PyTorch will be the smaller CPU-only build, and slower")
+        g.add(row)
+        comps = Adw.PreferencesGroup()
+        page.add(comps)
+        done = set(installed())
+        if not self.s.components:
+            self.s.components = sorted(done)
+        for c in COMPONENTS:
+            lines = [c.function, c.note] if c.note else [c.function]
+            if c.needs_torch:
+                lines.append("Needs PyTorch (shared with the other tools that use it).")
+            if c.repo and not self.s.repos.get(c.repo, "").strip():
+                lines.append(f"Needs a {c.repo} folder or git URL on the Repos tab.")
+            row = Adw.SwitchRow(title=GLib.markup_escape_text(c.name), subtitle=GLib.markup_escape_text("\n".join(lines)),
+                                active=c.id in self.s.components)
+            row.add_suffix(Gtk.Label(label=f"≈ {human(c.mb)}" + ("  ✓ installed" if c.id in done else ""),
+                                     css_classes=["dim-label"]))
+            row.connect("notify::active", lambda r, _p, cid=c.id: self._pick(cid, r.get_active()))
+            comps.add(row)
+        run = Adw.PreferencesGroup()
+        page.add(run)
+        self.summary_row = Adw.ActionRow(title="Install")
+        self.env_btn = Gtk.Button(label="Install selected", valign=Gtk.Align.CENTER, css_classes=["suggested-action"])
         self.env_btn.connect("clicked", self._setup_env)
-        self.env_row.add_suffix(self.env_btn)
-        env.add(self.env_row)
+        self.summary_row.add_suffix(self.env_btn)
+        run.add(self.summary_row)
+        self.env_row = Adw.ActionRow(title="Worker environment")
+        run.add(self.env_row)
+        self._summary()
         self._env_status()
         return page
+
+    def _pick(self, cid: str, on: bool) -> None:
+        chosen = set(self.s.components)
+        (chosen.add if on else chosen.discard)(cid)
+        self.s.components = [i for i in IDS if i in chosen]
+        self._changed()
+        self._summary()
+
+    def _summary(self) -> None:
+        pending = [i for i in self.s.components if i not in installed()]
+        mb = estimate_mb(pending, self.s.use_gpu and self._gpu, os.name == "nt")
+        self.summary_row.set_subtitle(GLib.markup_escape_text(
+            f"{', '.join(BY_ID[i].name for i in pending)}: about {human(mb)} on disk" if pending else "Nothing selected to install"))
+        self.env_btn.set_sensitive(bool(pending))
 
     def _env_status(self, text: str = "") -> None:
         ready = Path(worker_cmd(self.s)[0]).is_file()
@@ -114,12 +166,12 @@ class ConfigView(Gtk.Box):
         self.env_btn.set_sensitive(False)
 
         def work():
-            err = run_plan(plan(self.s), lambda label: GLib.idle_add(self._env_status, label + "…"))
+            err = run_plan(plan(self.s, self.s.components), lambda label: GLib.idle_add(self._env_status, label + "…"))
             GLib.idle_add(finish, err)
 
         def finish(err):
-            self.env_btn.set_sensitive(True)
             self._env_status("failed: " + err if err else "")
+            self._summary()
             if err:
                 self.note.set_label(err[:200])
             return GLib.SOURCE_REMOVE
@@ -212,6 +264,7 @@ class ConfigView(Gtk.Box):
             def finish(err):
                 self._data_status()
                 self._env_status(err)
+                self._summary()
                 return GLib.SOURCE_REMOVE
 
             threading.Thread(target=work, daemon=True).start()

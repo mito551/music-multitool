@@ -19,6 +19,7 @@ URLS = {  # Windows builds, except uv
     "ffmpeg": "https://github.com/BtbN/FFmpeg-Builds/releases/latest/download/ffmpeg-master-latest-win64-gpl.zip",
     "poppler": "https://github.com/oschwartz10612/poppler-windows/releases/download/v24.08.0-0/Release-24.08.0-0.zip",
 }
+ONLY = {"ffmpeg": {"ffmpeg.exe", "ffprobe.exe"}}  # the rest of the ffmpeg build (ffplay, docs) is not needed
 EXE = {"uv": "uv", "ffmpeg": "ffmpeg", "poppler": "pdftoppm"}  # the program that proves a download is present
 
 
@@ -56,7 +57,8 @@ def download(tool: str) -> None:
             shutil.copyfileobj(r, f)
         if URLS[tool].endswith(".zip"):
             with zipfile.ZipFile(archive) as z:
-                z.extractall(dest)
+                keep = ONLY.get(tool)
+                z.extractall(dest, [n for n in z.namelist() if keep is None or os.path.basename(n) in keep])
         else:
             with tarfile.open(archive) as t:
                 t.extractall(dest, filter="data")

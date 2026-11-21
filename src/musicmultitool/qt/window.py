@@ -8,7 +8,8 @@ from PySide6.QtWidgets import (QAbstractSpinBox, QApplication, QCheckBox, QCombo
                                QHBoxLayout, QLabel, QLineEdit, QMainWindow, QPlainTextEdit, QPushButton, QScrollArea,
                                QSplitter, QStackedWidget, QTextEdit, QVBoxLayout, QWidget)
 
-from musicmultitool.core.backend import PRESETS_DIR, Backend
+from musicmultitool.core.backend import PRESETS_DIR, Backend, worker_ready
+from musicmultitool.core.components import installed
 from musicmultitool.core.paths import user_presets_dir
 from musicmultitool.core.presets import load_presets
 from musicmultitool.core.queue import Item, Status
@@ -56,8 +57,9 @@ class MainWindow(QMainWindow):
         self.chains = ChainsTab()
         self._add_tab("chain", self.chains)
         self.chains.bind(str(PRESETS_DIR), USER_PRESETS, self._presets_changed)
-        self.stack.addWidget(ConfigView(settings, self._config_changed, self.backend.close))
-        self._pages = {**{k: t for k, t in self.tabs.items()}, "settings": self.stack.widget(self.stack.count() - 1)}
+        self.config = ConfigView(settings, self._config_changed, self.backend.close)
+        self.stack.addWidget(self.config)
+        self._pages = {**self.tabs, "settings": self.config}
         self.sidebar.add_page("settings", "Settings", "emblem-system-symbolic")
 
         forms = QScrollArea(widgetResizable=True)
@@ -78,6 +80,9 @@ class MainWindow(QMainWindow):
         self.hsplit.setSizes([settings.sidebar_width, 1040 - settings.sidebar_width])
         self.setCentralWidget(self.hsplit)
         self.sidebar.select(next(iter(self.tabs)))
+        if not installed() and not worker_ready(settings):  # first run: nothing is installed unasked, so offer the choice
+            self.sidebar.select("settings")
+            self.config.show_components()
         QApplication.instance().installEventFilter(self)
 
     def _add_tab(self, kind: str, tab: ToolTab) -> None:

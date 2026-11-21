@@ -21,6 +21,8 @@ class Settings:
     repos: dict = field(default_factory=dict)  # name -> local checkout or git URL; empty/missing = not installed
     worker_python: str = ""  # empty: the environment the app sets up for itself
     extra_path: str = ""  # directories prepended to the worker's PATH (ffmpeg, poppler)
+    components: list = field(default_factory=list)  # ids picked for installation (see components.py)
+    use_gpu: bool = True  # NVIDIA CUDA build of PyTorch where a GPU exists; False = the much smaller CPU build
     frontend: str = "auto"  # auto (by desktop), gtk or qt; takes effect on the next start
     sidebar_width: int = 240
     queue_height: int = 240
