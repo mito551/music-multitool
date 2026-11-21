@@ -14,8 +14,8 @@ class Settings:
     skip_existing: bool = True
     device: str = "auto"
     tab_opts: dict = field(default_factory=dict)
-    repos: dict = field(default_factory=dict)  # name -> local checkout; missing names fall back to ../<name>
-    worker_python: str = ""  # empty: the app's own .venv
+    repos: dict = field(default_factory=dict)  # name -> local checkout or git URL; empty/missing = not installed
+    worker_python: str = ""  # empty: the environment the app sets up for itself
     extra_path: str = ""  # directories prepended to the worker's PATH (ffmpeg, poppler)
     sidebar_width: int = 240
     queue_height: int = 240

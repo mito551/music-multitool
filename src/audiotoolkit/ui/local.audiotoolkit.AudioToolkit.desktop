@@ -2,7 +2,7 @@
 Type=Application
 Name=Audio Toolkit
 Comment=Separate stems, transcribe to MIDI, convert, analyze and transcribe lyrics, in batches
-Exec=env PYTHONPATH=@APP@/src /usr/bin/python3 -m audiotoolkit.ui
+Exec=@EXEC@
 Icon=audio-toolkit
 Terminal=false
 Categories=AudioVideo;Audio;

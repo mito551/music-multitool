@@ -27,6 +27,16 @@ class AudioToolkitApp(Adw.Application):
             GLib.timeout_add(500, self.quit)
 
 
+def cli() -> None:
+    """Console entry point."""
+    if "--install-desktop" in sys.argv:
+        from .desktop import install
+
+        print("Installed", install())
+        return
+    sys.exit(main(sys.argv))
+
+
 def main(argv: list[str]) -> int:
     smoke = "--smoke" in argv
     return AudioToolkitApp(smoke).run([a for a in argv if a != "--smoke"])

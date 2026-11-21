@@ -12,25 +12,34 @@ from audiotoolkit.core.protocol import Event
 from audiotoolkit.core.queue import BatchQueue, Item
 from audiotoolkit.core.runner import BatchRunner
 from audiotoolkit.core.settings import Settings
+from audiotoolkit.core.setup_env import venv_python
 from audiotoolkit.core.supervisor import Supervisor
 
-APP_DIR = Path(__file__).resolve().parents[3]
+PKG_DIR = Path(__file__).resolve().parents[1]
+PRESETS_DIR = PKG_DIR / "presets"
 
 
 def worker_cmd(settings: Settings | None = None) -> list[str]:
     python = (settings and settings.worker_python) or os.environ.get("AUDIOTOOLKIT_WORKER_PYTHON") \
-        or str(APP_DIR / ".venv" / "bin" / "python")
+        or str(venv_python())
     return [python, "-m", "audiotoolkit.worker"]
 
 
-def worker_env(settings: Settings) -> dict | None:
-    if not settings.extra_path:
-        return None
-    return {**os.environ, "PATH": settings.extra_path + os.pathsep + os.environ.get("PATH", "")}
+def worker_env(settings: Settings) -> dict:
+    """The worker imports this very package (pure Python), so it needs no install of the app inside its environment."""
+    env = {**os.environ, "PYTHONPATH": os.pathsep.join(filter(None, [str(PKG_DIR.parent), os.environ.get("PYTHONPATH")]))}
+    if settings.extra_path:
+        env["PATH"] = settings.extra_path + os.pathsep + env.get("PATH", "")
+    return env
+
+
+def worker_ready(settings: Settings) -> bool:
+    return Path(worker_cmd(settings)[0]).is_file()
 
 
 def repo_path(settings: Settings, name: str) -> str:
-    return settings.repos.get(name) or str(APP_DIR.parent / name)
+    """A local checkout or git URL the user entered; empty when none."""
+    return settings.repos.get(name, "")
 
 
 class UiBackend:

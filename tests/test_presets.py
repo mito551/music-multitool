@@ -4,7 +4,7 @@ from audiotoolkit.core.presets import Preset, Step, load_presets, save_preset, s
 from audiotoolkit.core.protocol import Output
 
 KINDS = ["convert", "analyze", "separate", "midi", "lyrics"]
-BUILTIN = str(Path(__file__).resolve().parents[1] / "presets")
+BUILTIN = str(Path(__file__).resolve().parents[1] / "src" / "audiotoolkit" / "presets")
 STEMS = [Output(f"stem:{n}", f"/o/stems/{n}.wav") for n in ("vocals", "drums", "bass")]
 
 

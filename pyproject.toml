@@ -5,12 +5,22 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "audiotoolkit"
 version = "0.1.0"
-description = "GTK4 UI over demucs, dettato and small audio tools"
+description = "GTK4 front end for stem separation, audio-to-MIDI, lyrics, sheet-music scanning and small audio tools"
+readme = "README.md"
 requires-python = ">=3.10"
+classifiers = ["Environment :: X11 Applications :: GTK", "Topic :: Multimedia :: Sound/Audio"]
+# No dependencies on purpose: PyGObject/GTK4/libadwaita come from the system, and the heavy worker environment (torch,
+# demucs, dettato, copisteria, ...) is built from the app's Settings.
 dependencies = []
+
+[project.scripts]
+audio-toolkit = "audiotoolkit.ui.app:cli"
 
 [tool.setuptools.packages.find]
 where = ["src"]
+
+[tool.setuptools.package-data]
+audiotoolkit = ["presets/*.json", "ui/style.css", "ui/*.svg", "ui/*.desktop"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

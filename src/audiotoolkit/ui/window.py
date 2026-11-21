@@ -15,7 +15,7 @@ from audiotoolkit.core.presets import load_presets
 from audiotoolkit.core.queue import Item, Status
 from audiotoolkit.core.settings import Settings, save_settings
 
-from .bridge import APP_DIR, UiBackend
+from .bridge import PRESETS_DIR, UiBackend
 from .config_dialog import ConfigView
 from .queue_view import QueueView
 from .sidebar import Sidebar
@@ -36,7 +36,7 @@ class MainWindow(Adw.ApplicationWindow):
         super().__init__(application=app, title="Audio Toolkit", default_width=1040, default_height=900)
         load_css()
         self.settings = settings
-        self.presets = load_presets(str(APP_DIR / "presets"), USER_PRESETS)
+        self.presets = load_presets(str(PRESETS_DIR), USER_PRESETS)
         self.backend = UiBackend(settings, self.presets, self._on_change)
         self.queue_view = QueueView(self._override_dialog)
 
@@ -47,7 +47,7 @@ class MainWindow(Adw.ApplicationWindow):
             self._add_tab(kind, cls())  # hidden kinds get a tab object (chains, opts) but no sidebar entry
         self.chains = ChainsTab()
         self._add_tab("chain", self.chains)
-        self.chains.bind(str(APP_DIR / "presets"), USER_PRESETS, self._presets_changed)
+        self.chains.bind(str(PRESETS_DIR), USER_PRESETS, self._presets_changed)
         self.stack.add_named(ConfigView(settings, self._config_changed), "settings")
         self.sidebar.add_page("settings", "Settings", "emblem-system-symbolic")
 

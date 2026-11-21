@@ -16,9 +16,10 @@ from gi.repository import Adw, GLib, Gtk  # noqa: E402
 
 from audiotoolkit.core.settings import Settings
 
+from audiotoolkit.core.setup_env import REPOS, local_checkout, plan, run_plan
+
 from .bridge import repo_path, worker_cmd
 
-REPOS = ("demucs", "dettato", "copisteria")
 # copisteria weights relative to its checkout, and the Hugging Face repo each one comes from
 WEIGHTS = (("Evidence model", "models/evidence-2m.pt", "copisteria"),
            ("Detector 28m", "models/small/v7_obj-recall-30m_best.pt", "copista-28m"),
@@ -83,36 +84,49 @@ class ConfigView(Gtk.Box):
 
     def _repos(self) -> Adw.PreferencesPage:
         page, g = self._page("Repos", "folder-symbolic",
-                             "Local checkouts of the projects this app wraps. Reinstall runs pip install -e on the folder "
-                             "in the worker's Python.")
+                             "Where the projects this app wraps come from: a local checkout or a git URL (it is cloned "
+                             "under ~/.local/share/audio-toolkit/repos). Leave a field empty to skip that tool.")
         for name in REPOS:
-            row = self._entry(g, name, repo_path(self.s, name), "repos", name)
-            status = Gtk.Label(css_classes=["dim-label"])
-            btn = Gtk.Button(label="Reinstall", valign=Gtk.Align.CENTER)
-
-            def reinstall(_b, row=row, status=status, btn=btn):
-                btn.set_sensitive(False)
-                status.set_label("installing…")
-
-                def done(ok, msg):
-                    btn.set_sensitive(True)
-                    status.set_label("installed" if ok else "failed")
-                    if not ok:
-                        self.note.set_label(msg[:160] or "pip failed")
-                    return GLib.SOURCE_REMOVE
-
-                _run_async([worker_cmd(self.s)[0], "-m", "pip", "install", "-q", "-e", row.get_text()], done)
-
-            btn.connect("clicked", reinstall)
-            row.add_suffix(status)
-            row.add_suffix(btn)
+            self._entry(g, f"{name}: folder or git URL", repo_path(self.s, name), "repos", name)
+        env = Adw.PreferencesGroup(title="Worker environment",
+                                   description="Python environment with torch, whisper, librosa and the repos above.")
+        page.add(env)
+        self.env_row = Adw.ActionRow(title="Worker environment")
+        self.env_btn = Gtk.Button(label="Set up / update", valign=Gtk.Align.CENTER, css_classes=["suggested-action"])
+        self.env_btn.connect("clicked", self._setup_env)
+        self.env_row.add_suffix(self.env_btn)
+        env.add(self.env_row)
+        self._env_status()
         return page
+
+    def _env_status(self, text: str = "") -> None:
+        ready = Path(worker_cmd(self.s)[0]).is_file()
+        self.env_row.set_subtitle(text or (f"ready: {worker_cmd(self.s)[0]}" if ready else "not set up yet"))
+
+    def _setup_env(self, *_) -> None:
+        self.env_btn.set_sensitive(False)
+
+        def work():
+            err = run_plan(plan(self.s), lambda label: GLib.idle_add(self._env_status, label + "…"))
+            GLib.idle_add(finish, err)
+
+        def finish(err):
+            self.env_btn.set_sensitive(True)
+            self._env_status("failed: " + err if err else "")
+            if err:
+                self.note.set_label(err[:200])
+            return GLib.SOURCE_REMOVE
+
+        threading.Thread(target=work, daemon=True).start()
 
     def _models(self) -> Adw.PreferencesPage:
         page, g = self._page("Models", "package-x-generic-symbolic",
                              "Scan score needs these weights. They are not in the repository; Download fetches them "
                              "from Hugging Face.")
-        root = Path(repo_path(self.s, "copisteria"))
+        root = local_checkout(self.s, "copisteria")
+        if root is None:
+            g.add(Adw.ActionRow(title="copisteria not configured", subtitle="Set it on the Repos tab first."))
+            return page
         for title, rel, hf_repo in WEIGHTS:
             row = Adw.ActionRow(title=title, subtitle=str(root / rel))
             have = (root / rel).is_file()
