@@ -1,4 +1,4 @@
-"""Settings dialog: General, Repos (local checkouts of the integrated projects), Models (weights), Paths."""
+"""Settings page of the main window: General, Repos (local checkouts of the integrated projects), Models (weights), Paths."""
 from __future__ import annotations
 
 import os
@@ -34,12 +34,18 @@ def _run_async(cmd: list[str], done: Callable[[bool, str], None]) -> None:
     threading.Thread(target=work, daemon=True).start()
 
 
-class ConfigDialog(Adw.PreferencesDialog):
+class ConfigView(Gtk.Box):
     def __init__(self, settings: Settings, on_changed: Callable[[], None]):
-        super().__init__(title="Settings")
+        super().__init__(orientation=Gtk.Orientation.VERTICAL, spacing=6)
         self.s, self._changed = settings, on_changed
+        stack = Adw.ViewStack()
         for page in (self._general(), self._repos(), self._models(), self._paths()):
-            self.add(page)
+            stack.add_titled_with_icon(page, page.get_title().lower(), page.get_title(), page.get_icon_name())
+        switcher = Adw.ViewSwitcher(stack=stack, policy=Adw.ViewSwitcherPolicy.WIDE, halign=Gtk.Align.CENTER, margin_top=12)
+        self.note = Gtk.Label(xalign=0, css_classes=["dim-label"], margin_start=24, margin_bottom=6)  # replaces toasts
+        for w in (switcher, stack, self.note):
+            self.append(w)
+        stack.set_vexpand(True)
 
     def _page(self, title: str, icon: str, description: str = "") -> tuple[Adw.PreferencesPage, Adw.PreferencesGroup]:
         page = Adw.PreferencesPage(title=title, icon_name=icon)
@@ -92,7 +98,7 @@ class ConfigDialog(Adw.PreferencesDialog):
                     btn.set_sensitive(True)
                     status.set_label("installed" if ok else "failed")
                     if not ok:
-                        self.add_toast(Adw.Toast(title=msg[:120] or "pip failed"))
+                        self.note.set_label(msg[:160] or "pip failed")
                     return GLib.SOURCE_REMOVE
 
                 _run_async([worker_cmd(self.s)[0], "-m", "pip", "install", "-q", "-e", row.get_text()], done)
@@ -123,7 +129,7 @@ class ConfigDialog(Adw.PreferencesDialog):
                     mark.set_label("found" if ok else "failed")
                     btn.set_sensitive(not ok)
                     if not ok:
-                        self.add_toast(Adw.Toast(title=msg[:120] or "download failed"))
+                        self.note.set_label(msg[:160] or "download failed")
                     return GLib.SOURCE_REMOVE
 
                 _run_async([hf, "download", src, "--include", "*.pt", "--local-dir", str(root / "models")], done)

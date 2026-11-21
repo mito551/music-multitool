@@ -16,7 +16,7 @@ from audiotoolkit.core.queue import Item, Status
 from audiotoolkit.core.settings import Settings, save_settings
 
 from .bridge import APP_DIR, UiBackend
-from .config_dialog import ConfigDialog
+from .config_dialog import ConfigView
 from .queue_view import QueueView
 from .sidebar import Sidebar
 from .tabs import TABS
@@ -48,6 +48,8 @@ class MainWindow(Adw.ApplicationWindow):
         self.chains = ChainsTab()
         self._add_tab("chain", self.chains)
         self.chains.bind(str(APP_DIR / "presets"), USER_PRESETS, self._presets_changed)
+        self.stack.add_named(ConfigView(settings, self._config_changed), "settings")
+        self.sidebar.add_page("settings", "Settings", "emblem-system-symbolic")
 
         # The form area takes whatever height is left and scrolls if a form is taller; its size never depends on the
         # visible tab, and the queue below has one fixed height for every tab.
@@ -59,9 +61,6 @@ class MainWindow(Adw.ApplicationWindow):
                               resize_start_child=True, resize_end_child=False, start_child=forms,
                               end_child=self._queue_panel(), position=900 - 48 - settings.queue_height)
         header = Adw.HeaderBar(title_widget=Gtk.Box(), css_classes=["flat"])  # window controls only
-        gear = Gtk.Button(icon_name="emblem-system-symbolic", tooltip_text="Settings", css_classes=["flat"])
-        gear.connect("clicked", lambda *_: ConfigDialog(self.settings, self._config_changed).present(self))
-        header.pack_end(gear)
         content = Adw.ToolbarView(content=self.main, hexpand=True, css_classes=["content-pane"])
         content.add_top_bar(header)
         drop = Gtk.DropTarget.new(Gdk.FileList, Gdk.DragAction.COPY)
@@ -124,7 +123,9 @@ class MainWindow(Adw.ApplicationWindow):
                 files = [d.select_folder_finish(result)] if folder else d.open_multiple_finish(result)
             except GLib.Error:  # dialog cancelled
                 return
-            self.tabs[self.stack.get_visible_child_name()].accept([f.get_path() for f in files if f and f.get_path()])
+            tab = self.tabs.get(self.stack.get_visible_child_name())
+            if tab:
+                tab.accept([f.get_path() for f in files if f and f.get_path()])
 
         if folder:
             dialog.select_folder(self, None, done)
