@@ -1,10 +1,20 @@
 from audiotoolkit.core.synthv import from_synthv, to_synthv
 
 
-def test_words_hold_and_gaps():
-    words = [(0.0, 1.0, "snow"), (1.5, 2.0, "glows")]
-    notes = [(0.0, 0.4), (0.5, 0.9), (1.2, 1.3), (1.5, 2.0)]
-    assert to_synthv(words, notes) == ("snow + - glows", 0)
+def test_next_syllable_then_continue():
+    words = [(0.0, 2.0, "footprint"), (3.0, 3.5, "to")]
+    notes = [(0.0, 0.4), (0.5, 0.9), (1.2, 1.3), (3.0, 3.4)]
+    assert to_synthv(words, notes) == ("footprint + - to", 0)
+
+
+def test_one_syllable_word_only_continues():
+    assert to_synthv([(0.0, 1.0, "queen")], [(0.0, 0.4), (0.5, 0.9)]) == ("queen -", 0)
+
+
+def test_syllable_counts():
+    from audiotoolkit.core.synthv import syllables
+    assert [syllables(w) for w in ("snow", "mountain", "tonight", "howling", "the", "make", "walked", "table", "isolation")] \
+        == [1, 2, 2, 2, 1, 1, 1, 2, 4]
 
 
 def test_word_without_note_is_kept():
@@ -72,5 +82,5 @@ def test_queue_lyrics_takes_synthv_txt(tmp_path):
     assert [i.song for i in BatchQueue().add([str(tmp_path / "a.synthv.txt")], "separate", {})] == []
 
 
-def test_wordless_notes_collapse_to_one_break():
-    assert to_synthv([(0.0, 0.1, "a")], [(0.0, 0.1), (2.0, 2.1), (3.0, 3.1)]) == ("a -", 0)
+def test_notes_outside_any_word_get_no_token():
+    assert to_synthv([(0.0, 0.1, "a")], [(0.0, 0.1), (2.0, 2.1), (3.0, 3.1)]) == ("a", 0)

@@ -17,7 +17,7 @@ class LyricsTab(ToolTab):
         self.size = combo("Model size", ["tiny", "base", "small", "medium", "large-v3"])
         self.language = entry("Language code (empty = auto)")
         self.device = combo("Device", ["auto", "cuda", "cpu"])
-        self.synthv = switch("SynthV lyrics (words on MIDI notes, + and -)")
+        self.synthv = switch("SynthV lyrics (words on MIDI notes)")
         self.midi = entry("MIDI file (empty = this song's own)")
         pick = Gtk.Button(icon_name="document-open-symbolic", valign=Gtk.Align.CENTER, tooltip_text="Choose MIDI…")
         pick.connect("clicked", self._pick_midi)
