@@ -10,6 +10,7 @@ from typing import Callable
 
 from . import provision
 from .paths import data_dir
+from .proc import QUIET, TEXT
 from .settings import Settings
 
 DATA_DIR = data_dir()
@@ -102,7 +103,7 @@ def run_plan(steps: list[Step], progress: Callable[[str], None]) -> str | None:
                 return f"{label}: {e}"
             continue
         try:
-            r = subprocess.run(cmd, capture_output=True, text=True)
+            r = subprocess.run(cmd, capture_output=True, **TEXT, **QUIET)
         except OSError as e:
             return f"{label}: {e}"
         if r.returncode != 0:

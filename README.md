@@ -32,7 +32,7 @@ ffmpeg and poppler already on PATH are reused; otherwise they, uv and a Python 3
 
 On Linux there is also a single `AudioToolkit-x86_64.AppImage` (`chmod +x` and run). It uses the system's GTK interface
 when `python3` has PyGObject, GTK4 and libadwaita 1.5 or newer, and the bundled Qt interface otherwise (also on KDE-like
-desktops, or with `--ui qt`). The Qt part needs `libxcb-cursor0` (`xcb-util-cursor` on Fedora) on X11. Build it with
+desktops, or with `--ui qt`). AppImages need FUSE 2 (`fuse-libs` on Fedora), or run it with `--appimage-extract-and-run`. The Qt part needs `libxcb-cursor0` (`xcb-util-cursor` on Fedora) on X11. Build it with
 `packaging/appimage.sh` or the same `build` workflow.
 
 ## First run

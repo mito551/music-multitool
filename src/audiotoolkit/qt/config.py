@@ -14,6 +14,7 @@ from PySide6.QtWidgets import (QCheckBox, QMessageBox, QComboBox, QFormLayout, Q
 
 from audiotoolkit.core.backend import repo_path, worker_cmd
 from audiotoolkit.core.paths import data_dir
+from audiotoolkit.core.proc import QUIET, TEXT
 from audiotoolkit.core.provision import data_size, remove_data
 from audiotoolkit.core.settings import Settings
 from audiotoolkit.core.setup_env import REPOS, local_checkout, plan, run_plan
@@ -160,7 +161,7 @@ class ConfigView(QWidget):
         cmd = [hf, "download", f"kobimusic/{hf_repo}", "--include", "*.pt", "--local-dir", str(root / "models")]
 
         def work() -> None:
-            r = subprocess.run(cmd, capture_output=True, text=True)
+            r = subprocess.run(cmd, capture_output=True, **TEXT, **QUIET)
             tail = (r.stderr or r.stdout).strip().splitlines()
             self._finished.emit("model", "" if r.returncode == 0 else (tail[-1] if tail else "download failed"))
 

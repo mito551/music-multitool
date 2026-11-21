@@ -6,6 +6,7 @@ import threading
 from collections import deque
 from typing import Callable
 
+from .proc import QUIET, TEXT
 from .protocol import Done, Event, Failed, Job, decode_event, encode_job
 
 
@@ -56,7 +57,7 @@ class Supervisor:
 
     def _start(self) -> None:
         proc = subprocess.Popen(self._cmd, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
-                                text=True, bufsize=1, env=self._env)
+                                bufsize=1, env=self._env, **TEXT, **QUIET)
         self._proc = proc
         err = threading.Thread(target=self._read_stderr, args=(proc,), daemon=True)
         err.start()
