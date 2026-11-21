@@ -8,11 +8,13 @@ from .base import ToolTab
 from .convert_tab import ConvertTab
 from .lyrics_tab import LyricsTab
 from .midi_tab import MidiTab
+from .score_tab import ScoreTab
 from .separate_tab import SeparateTab
 
 TABS: dict[str, type[ToolTab]] = {}
 RESULT_TEXT: dict[str, Callable[[dict], str]] = {}
 
-for _tab in (ConvertTab, SeparateTab, MidiTab, AnalyzeTab, LyricsTab):
+for _tab in (ConvertTab, SeparateTab, MidiTab, AnalyzeTab, LyricsTab, ScoreTab):
     TABS[_tab.kind] = _tab
 RESULT_TEXT["analyze"] = _analyze_text
+RESULT_TEXT["score"] = lambda r: f"{r['pages']} page{'s' if r['pages'] != 1 else ''} read"

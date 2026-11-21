@@ -23,6 +23,10 @@ def _dropdown(values: list[str], current: str, on_change: Callable[[str], None])
     return dd
 
 
+def _chainable() -> list[str]:
+    return [k for k, t in TABS.items() if t.chainable]
+
+
 class ChainsTab(ToolTab):
     kind = "chain"
     title = "Chains"
@@ -105,7 +109,7 @@ class ChainsTab(ToolTab):
             self.steps_box.remove(child)
         for i, step in enumerate(self.steps):
             row = Adw.ActionRow(title=f"Step {i + 1}")
-            row.add_suffix(_dropdown(list(TABS), step.kind, lambda k, i=i: self._set_kind(i, k)))
+            row.add_suffix(_dropdown(_chainable(), step.kind, lambda k, i=i: self._set_kind(i, k)))
             row.add_suffix(_dropdown(ROLES, step.input, lambda r, i=i: self._set_input(i, r)))
             buttons = [("go-up-symbolic", "Move up", lambda i=i: self._move(i, -1)),
                        ("go-down-symbolic", "Move down", lambda i=i: self._move(i, 1)),
@@ -167,7 +171,7 @@ class ChainsTab(ToolTab):
     # -- save / delete / run ------------------------------------------------------------------------------------
 
     def _errors(self) -> list[str]:
-        return validate_preset(Preset(self.name, tuple(self.steps)), TABS)
+        return validate_preset(Preset(self.name, tuple(self.steps)), _chainable())
 
     def _blocking_reason(self) -> str:
         if not self.name:

@@ -69,3 +69,11 @@ def test_same_source_shares_song_dir_across_kinds(tmp_path):
     again = q.add([src], "lyrics", {})[0]
     diff = q.add([other], "lyrics", {})[0]
     assert first.song == again.song == "song" and diff.song == "song (2)"
+
+
+def test_score_kind_takes_images_and_pdfs_not_audio(tmp_path):
+    page, pdf = touch(tmp_path / "p.PNG"), touch(tmp_path / "s.pdf")
+    song = touch(tmp_path / "a.mp3")
+    q = BatchQueue()
+    assert [i.source for i in q.add([page, pdf, song], "score", {})] == [page, pdf]
+    assert q.add([page, pdf], "midi", {}) == []

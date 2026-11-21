@@ -8,7 +8,7 @@ from pathlib import Path
 
 from .protocol import Job, Output
 
-_SUBDIRS = {"midi": "midi", "lyrics": "lyrics", "audio": "audio", "analysis": "analysis"}
+_SUBDIRS = {"midi": "midi", "lyrics": "lyrics", "audio": "audio", "analysis": "analysis", "score": "score"}
 
 
 def song_dir(out_root: str, song: str) -> str:

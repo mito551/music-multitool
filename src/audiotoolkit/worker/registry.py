@@ -4,7 +4,7 @@ from __future__ import annotations
 import importlib
 from types import ModuleType
 
-KINDS = {k: f"audiotoolkit.worker.kinds.{k}" for k in ("convert", "analyze", "separate", "midi", "lyrics")}
+KINDS = {k: f"audiotoolkit.worker.kinds.{k}" for k in ("convert", "analyze", "separate", "midi", "lyrics", "score")}
 
 
 def load_kind(kind: str) -> ModuleType:

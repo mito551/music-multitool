@@ -53,6 +53,7 @@ class ToolTab(Gtk.Box):
     kind: str = ""
     title: str = ""
     icon: str = "image-missing"
+    chainable: bool = True  # False: input isn't audio, so the tool can't be a preset step
     has_opts: bool = True  # False: nothing to configure, so no override/step-options dialog
 
     def __init__(self, embedded: bool = False) -> None:
