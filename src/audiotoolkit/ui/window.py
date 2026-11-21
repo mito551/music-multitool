@@ -11,6 +11,7 @@ gi.require_version("Gtk", "4.0")
 gi.require_version("Adw", "1")
 from gi.repository import Adw, Gdk, GLib, Gtk  # noqa: E402
 
+from audiotoolkit.core.paths import user_presets_dir
 from audiotoolkit.core.presets import load_presets
 from audiotoolkit.core.queue import Item, Status
 from audiotoolkit.core.settings import Settings, save_settings
@@ -22,7 +23,7 @@ from .sidebar import Sidebar
 from .tabs import TABS
 from .tabs.chains_tab import ChainsTab
 
-USER_PRESETS = os.path.expanduser("~/.config/audio-toolkit/presets")
+USER_PRESETS = user_presets_dir()
 
 
 def load_css() -> None:
@@ -48,7 +49,7 @@ class MainWindow(Adw.ApplicationWindow):
         self.chains = ChainsTab()
         self._add_tab("chain", self.chains)
         self.chains.bind(str(PRESETS_DIR), USER_PRESETS, self._presets_changed)
-        self.stack.add_named(ConfigView(settings, self._config_changed), "settings")
+        self.stack.add_named(ConfigView(settings, self._config_changed, self.backend.close), "settings")
         self.sidebar.add_page("settings", "Settings", "emblem-system-symbolic")
 
         # The form area takes whatever height is left and scrolls if a form is taller; its size never depends on the

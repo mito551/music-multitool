@@ -9,6 +9,7 @@ from PySide6.QtWidgets import (QAbstractSpinBox, QApplication, QCheckBox, QCombo
                                QSplitter, QStackedWidget, QTextEdit, QVBoxLayout, QWidget)
 
 from audiotoolkit.core.backend import PRESETS_DIR, Backend
+from audiotoolkit.core.paths import user_presets_dir
 from audiotoolkit.core.presets import load_presets
 from audiotoolkit.core.queue import Item, Status
 from audiotoolkit.core.settings import Settings, save_settings
@@ -21,7 +22,7 @@ from .rows import ToolTab, icon
 from .sidebar import Sidebar
 from .tabs import TABS
 
-USER_PRESETS = os.path.expanduser("~/.config/audio-toolkit/presets")
+USER_PRESETS = user_presets_dir()
 STYLE = """
 QPushButton#tap { border-radius: 38px; min-width: 76px; max-width: 76px; min-height: 76px; max-height: 76px;
                   font-weight: 800; font-size: 18px; background: palette(highlight); color: palette(highlighted-text); }
@@ -55,7 +56,7 @@ class MainWindow(QMainWindow):
         self.chains = ChainsTab()
         self._add_tab("chain", self.chains)
         self.chains.bind(str(PRESETS_DIR), USER_PRESETS, self._presets_changed)
-        self.stack.addWidget(ConfigView(settings, self._config_changed))
+        self.stack.addWidget(ConfigView(settings, self._config_changed, self.backend.close))
         self._pages = {**{k: t for k, t in self.tabs.items()}, "settings": self.stack.widget(self.stack.count() - 1)}
         self.sidebar.add_page("settings", "Settings", "emblem-system-symbolic")
 

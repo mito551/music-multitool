@@ -5,7 +5,11 @@ import json
 import os
 from dataclasses import asdict, dataclass, field, fields
 
-DEFAULT_PATH = "~/.config/audio-toolkit/settings.json"
+from .paths import config_dir
+
+
+def default_path() -> str:
+    return str(config_dir() / "settings.json")
 
 
 @dataclass
@@ -24,7 +28,7 @@ class Settings:
 
 def load_settings(path: str | None = None) -> Settings:
     try:
-        with open(os.path.expanduser(path or DEFAULT_PATH)) as f:
+        with open(os.path.expanduser(path or default_path())) as f:
             data = json.load(f)
         known = {f.name for f in fields(Settings)}
         return Settings(**{k: v for k, v in data.items() if k in known})
@@ -33,7 +37,7 @@ def load_settings(path: str | None = None) -> Settings:
 
 
 def save_settings(s: Settings, path: str | None = None) -> None:
-    path = os.path.expanduser(path or DEFAULT_PATH)
+    path = os.path.expanduser(path or default_path())
     os.makedirs(os.path.dirname(path), exist_ok=True)
     with open(path, "w") as f:
         json.dump(asdict(s), f, indent=2)

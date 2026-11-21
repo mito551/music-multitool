@@ -24,7 +24,11 @@ Both need access to the system's Python packages, so install with:
     pipx install --system-site-packages audiotoolkit-0.1.0-py3-none-any.whl
     audio-toolkit --install-desktop      # launcher entry and icon under ~/.local/share
 
-On Windows only the Qt interface exists: `pip install "audiotoolkit[qt]"`, ffmpeg (and poppler for PDF scores) on PATH.
+On Windows there is one file, `AudioToolkit.exe` (Qt interface only). Keep it anywhere; nothing is installed.
+Settings and your chains live in `%APPDATA%\AudioToolkit`, everything downloaded in `%LOCALAPPDATA%\AudioToolkit`.
+ffmpeg and poppler already on PATH are reused; otherwise they, uv and a Python 3.12 are downloaded there on first setup.
+**Settings → Paths → Delete…** removes all of it again (optionally with your settings). Build it with the
+`windows-exe` GitHub Actions workflow or `pyinstaller packaging/audiotoolkit.spec` on Windows.
 
 ## First run
 

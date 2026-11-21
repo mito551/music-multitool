@@ -5,7 +5,7 @@ from typing import Callable
 
 from gi.repository import GLib
 
-from audiotoolkit.core.backend import (PKG_DIR, PRESETS_DIR, Backend, repo_path, worker_cmd, worker_env,  # noqa: F401
+from audiotoolkit.core.backend import (PRESETS_DIR, Backend, repo_path, worker_cmd, worker_env,  # noqa: F401
                                        worker_ready)
 from audiotoolkit.core.presets import Preset
 from audiotoolkit.core.queue import Item

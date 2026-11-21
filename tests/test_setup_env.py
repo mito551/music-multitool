@@ -56,3 +56,22 @@ def test_windows_without_nvidia_says_cpu(tmp_path):
 
 def test_linux_has_no_separate_torch_step(tmp_path):
     assert not any("torch (" in n for n in labels(plan(Settings(), "x", tmp_path / "v", windows=False, nvidia=True)))
+
+
+def test_windows_plan_uses_uv_and_fetches_tools(tmp_path):
+    steps = dict(plan(Settings(), "x", tmp_path / "v", windows=True, nvidia=True))
+    assert {"Fetching uv", "Fetching ffmpeg", "Fetching poppler"} <= set(steps)
+    assert all(callable(steps[k]) for k in ("Fetching uv", "Fetching ffmpeg"))
+    create = steps["Creating the environment"]
+    assert create[1:3] == ["venv", "--python"] and Path(create[0]).stem == "uv"
+    assert steps["Installing torch (CUDA)"][1:3] == ["pip", "install"] and "Updating pip" not in steps
+
+
+def test_run_plan_runs_callables_and_reports_their_errors():
+    seen = []
+
+    def boom():
+        raise RuntimeError("no network")
+
+    assert run_plan([("a", lambda: seen.append(1)), ("b", boom), ("c", lambda: seen.append(2))], lambda _l: None) \
+        == "b: no network" and seen == [1]

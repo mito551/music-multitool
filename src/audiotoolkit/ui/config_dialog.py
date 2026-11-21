@@ -14,6 +14,8 @@ gi.require_version("Gtk", "4.0")
 gi.require_version("Adw", "1")
 from gi.repository import Adw, GLib, Gtk  # noqa: E402
 
+from audiotoolkit.core.paths import data_dir
+from audiotoolkit.core.provision import data_size, remove_data
 from audiotoolkit.core.settings import Settings
 
 from audiotoolkit.core.setup_env import REPOS, local_checkout, plan, run_plan
@@ -36,9 +38,9 @@ def _run_async(cmd: list[str], done: Callable[[bool, str], None]) -> None:
 
 
 class ConfigView(Gtk.Box):
-    def __init__(self, settings: Settings, on_changed: Callable[[], None]):
+    def __init__(self, settings: Settings, on_changed: Callable[[], None], stop_worker: Callable[[], None]):
         super().__init__(orientation=Gtk.Orientation.VERTICAL, spacing=6)
-        self.s, self._changed = settings, on_changed
+        self.s, self._changed, self._stop_worker = settings, on_changed, stop_worker
         stack = Adw.ViewStack()
         for page in (self._general(), self._repos(), self._models(), self._paths()):
             stack.add_titled_with_icon(page, page.get_title().lower(), page.get_title(), page.get_icon_name())
@@ -164,9 +166,55 @@ class ConfigView(Gtk.Box):
                              "Applies from the next worker start. Leave empty for the defaults.")
         self._entry(g, "Worker Python (default: the app's .venv)", self.s.worker_python, "worker_python")
         self._entry(g, "Extra PATH folders (ffmpeg, poppler)", self.s.extra_path, "extra_path")
+        data = Adw.PreferencesGroup(title="Downloaded data")
+        page.add(data)
+        self.data_row = Adw.ActionRow(title=str(data_dir()))
+        delete = Gtk.Button(label="Delete…", valign=Gtk.Align.CENTER, css_classes=["destructive-action"])
+        delete.connect("clicked", self._delete_data)
+        self.data_row.add_suffix(delete)
+        data.add(self.data_row)
+        self._data_status()
         tools = Adw.PreferencesGroup(title="Found on PATH")
         page.add(tools)
         for exe in ("ffmpeg", "pdftoppm"):
             where = shutil.which(exe, path=self.s.extra_path + os.pathsep + os.environ.get("PATH", ""))
             tools.add(Adw.ActionRow(title=exe, subtitle=where or "not found"))
         return page
+
+    def _data_status(self) -> None:
+        size = data_size()
+        self.data_row.set_subtitle(f"Environment, repos and tools: {size / 1e9:.1f} GB" if size else "Nothing downloaded")
+
+    def _delete_data(self, *_) -> None:
+        also = Gtk.CheckButton(label="Also delete my settings and chains")
+        dialog = Adw.AlertDialog(heading="Delete downloaded data?",
+                                 body=f"Removes {data_dir()}: the worker environment, cloned repos and downloaded tools "
+                                      f"({data_size() / 1e9:.1f} GB). Set it up again from the Repos tab.")
+        dialog.set_extra_child(also)
+        dialog.add_response("cancel", "Cancel")
+        dialog.add_response("delete", "Delete")
+        dialog.set_response_appearance("delete", Adw.ResponseAppearance.DESTRUCTIVE)
+
+        def done(_d, response):
+            if response != "delete":
+                return
+            self._stop_worker()  # a running worker holds files open
+            include = also.get_active()
+
+            def work():
+                try:
+                    remove_data(include)
+                    err = ""
+                except OSError as e:
+                    err = f"Delete failed: {e}"
+                GLib.idle_add(finish, err)
+
+            def finish(err):
+                self._data_status()
+                self._env_status(err)
+                return GLib.SOURCE_REMOVE
+
+            threading.Thread(target=work, daemon=True).start()
+
+        dialog.connect("response", done)
+        dialog.present(self)

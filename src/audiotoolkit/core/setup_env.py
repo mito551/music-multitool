@@ -8,9 +8,11 @@ import sys
 from pathlib import Path
 from typing import Callable
 
+from . import provision
+from .paths import data_dir
 from .settings import Settings
 
-DATA_DIR = Path(os.environ.get("XDG_DATA_HOME") or Path.home() / ".local" / "share") / "audio-toolkit"
+DATA_DIR = data_dir()
 WORKER_VENV = DATA_DIR / "venv"
 REPOS = ("demucs", "dettato", "copisteria")
 # From PyPI. PyAV is pinned because faster-whisper breaks on >= 17.
@@ -21,7 +23,7 @@ BASE = ["torch", "torchaudio", "faster-whisper", "librosa", "soundfile", "huggin
 TORCH_CUDA_INDEX = "https://download.pytorch.org/whl/cu126"
 PINS = ["av>=14,<17"]
 
-Step = tuple[str, list[str]]
+Step = tuple[str, "list[str] | Callable[[], None]"]  # a command to run, or a Python callable (downloads)
 
 
 def venv_python(venv: Path = WORKER_VENV) -> Path:
@@ -53,11 +55,20 @@ def plan(settings: Settings, base_python: str = sys.executable, venv: Path = WOR
     """Steps to make the worker environment match the settings. Re-running only repeats what is needed."""
     nvidia = has_nvidia() if nvidia is None else nvidia
     python = settings.worker_python or str(venv_python(venv))
-    pip = [python, "-m", "pip", "install", "-q"]
     steps: list[Step] = []
-    if not settings.worker_python and not Path(python).is_file():
-        steps.append(("Creating the environment", [base_python, "-m", "venv", str(venv)]))
-    steps.append(("Updating pip", [*pip, "-U", "pip"]))
+    if windows:  # no Python on a stock Windows: uv fetches one and builds the environment
+        uv = provision.tool_path("uv") or str(provision.bin_dir() / "uv" / "uv.exe")
+        steps.append(("Fetching uv", lambda: provision.download("uv")))
+        steps.append(("Fetching ffmpeg", lambda: provision.download("ffmpeg")))
+        steps.append(("Fetching poppler", lambda: provision.download("poppler")))
+        pip = [uv, "pip", "install", "--python", python]
+        if not settings.worker_python and not Path(python).is_file():
+            steps.append(("Creating the environment", [uv, "venv", "--python", "3.12", str(venv)]))
+    else:
+        pip = [python, "-m", "pip", "install", "-q"]
+        if not settings.worker_python and not Path(python).is_file():
+            steps.append(("Creating the environment", [base_python, "-m", "venv", str(venv)]))
+        steps.append(("Updating pip", [*pip, "-U", "pip"]))
     if windows:
         if nvidia:
             steps.append(("Installing torch (CUDA)", [*pip, "torch", "torchaudio", "--index-url", TORCH_CUDA_INDEX]))
@@ -83,6 +94,12 @@ def run_plan(steps: list[Step], progress: Callable[[str], None]) -> str | None:
     """Runs the steps in order; returns None on success, else the failing step's last output line."""
     for label, cmd in steps:
         progress(label)
+        if callable(cmd):
+            try:
+                cmd()
+            except Exception as e:  # download or unpack failed
+                return f"{label}: {e}"
+            continue
         try:
             r = subprocess.run(cmd, capture_output=True, text=True)
         except OSError as e:

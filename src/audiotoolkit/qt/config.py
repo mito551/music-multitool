@@ -9,10 +9,12 @@ from pathlib import Path
 from typing import Callable
 
 from PySide6.QtCore import Signal
-from PySide6.QtWidgets import (QCheckBox, QComboBox, QFormLayout, QGroupBox, QHBoxLayout, QLabel, QLineEdit, QPushButton,
+from PySide6.QtWidgets import (QCheckBox, QMessageBox, QComboBox, QFormLayout, QGroupBox, QHBoxLayout, QLabel, QLineEdit, QPushButton,
                                QTabWidget, QVBoxLayout, QWidget)
 
 from audiotoolkit.core.backend import repo_path, worker_cmd
+from audiotoolkit.core.paths import data_dir
+from audiotoolkit.core.provision import data_size, remove_data
 from audiotoolkit.core.settings import Settings
 from audiotoolkit.core.setup_env import REPOS, local_checkout, plan, run_plan
 from audiotoolkit.core.tools import DEVICES
@@ -28,9 +30,9 @@ class ConfigView(QWidget):
     _progress = Signal(str)  # a background step reports from its thread
     _finished = Signal(str, str)  # which job, error text ("" = ok)
 
-    def __init__(self, settings: Settings, on_changed: Callable[[], None]):
+    def __init__(self, settings: Settings, on_changed: Callable[[], None], stop_worker: Callable[[], None]):
         super().__init__()
-        self.s, self._changed = settings, on_changed
+        self.s, self._changed, self._stop_worker = settings, on_changed, stop_worker
         self.note = QLabel(wordWrap=True, enabled=False)
         tabs = QTabWidget()
         for title, build in (("General", self._general), ("Repos", self._repos), ("Models", self._models),
@@ -119,6 +121,11 @@ class ConfigView(QWidget):
             self._env_status("Failed: " + err if err else "")
         if job == "model":
             self._rebuild_models()
+        if job == "delete":
+            self.delete_btn.setEnabled(True)
+            self._data_status()
+            self._env_status()
+            self._rebuild_models()
         self.note.setText(err[:200])
 
     def _models(self) -> QWidget:
@@ -163,7 +170,43 @@ class ConfigView(QWidget):
         page, form = self._page("Applies from the next worker start. Leave empty for the defaults.")
         self._entry(form, "Worker Python (default: the app's own environment)", self.s.worker_python, "worker_python")
         self._entry(form, "Extra PATH folders (ffmpeg, poppler)", self.s.extra_path, "extra_path")
+        box = QGroupBox("Downloaded data")
+        row = QHBoxLayout(box)
+        self.data_label = QLabel(wordWrap=True)
+        self.delete_btn = QPushButton("Delete…")
+        self.delete_btn.clicked.connect(self._delete_data)
+        row.addWidget(self.data_label, 1)
+        row.addWidget(self.delete_btn)
+        page.body.insertWidget(page.body.count() - 1, box)  # type: ignore[attr-defined]
+        self._data_status()
         search = self.s.extra_path + os.pathsep + os.environ.get("PATH", "")
         for exe in ("ffmpeg", "pdftoppm"):
             form.addRow(exe, QLabel(shutil.which(exe, path=search) or "not found", enabled=False))
         return page
+
+    def _data_status(self) -> None:
+        size = data_size()
+        self.data_label.setText(f"{data_dir()}\nWorker environment, cloned repos and downloaded tools: "
+                                f"{size / 1e9:.1f} GB" if size else f"{data_dir()}\nNothing downloaded.")
+
+    def _delete_data(self) -> None:
+        box = QMessageBox(QMessageBox.Warning, "Delete downloaded data",
+                          f"Deletes {data_dir()}: the worker environment, cloned repos and downloaded tools "
+                          f"({data_size() / 1e9:.1f} GB). The environment can be set up again from the Repos tab.",
+                          QMessageBox.Cancel | QMessageBox.Yes, self)
+        also = QCheckBox("Also delete my settings and chains")
+        box.setCheckBox(also)
+        if box.exec() != QMessageBox.Yes:
+            return
+        self.delete_btn.setEnabled(False)
+        self._stop_worker()  # a running worker holds files open
+        include = also.isChecked()
+
+        def work() -> None:
+            try:
+                remove_data(include)
+                self._finished.emit("delete", "")
+            except OSError as e:
+                self._finished.emit("delete", f"Delete failed: {e}")
+
+        threading.Thread(target=work, daemon=True).start()

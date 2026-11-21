@@ -6,6 +6,7 @@ from pathlib import Path
 from typing import Callable, Iterable
 
 from .presets import Preset
+from .provision import bundle_src, tool_dirs, worker_src
 from .protocol import Event
 from .queue import BatchQueue, Item
 from .runner import BatchRunner
@@ -13,8 +14,7 @@ from .settings import Settings
 from .setup_env import venv_python
 from .supervisor import Supervisor
 
-PKG_DIR = Path(__file__).resolve().parents[1]
-PRESETS_DIR = PKG_DIR / "presets"
+PRESETS_DIR = bundle_src() / "audiotoolkit" / "presets"
 
 
 def worker_cmd(settings: Settings | None = None) -> list[str]:
@@ -25,9 +25,9 @@ def worker_cmd(settings: Settings | None = None) -> list[str]:
 
 def worker_env(settings: Settings) -> dict:
     """The worker imports this very package (pure Python), so it needs no install of the app inside its environment."""
-    env = {**os.environ, "PYTHONPATH": os.pathsep.join(filter(None, [str(PKG_DIR.parent), os.environ.get("PYTHONPATH")]))}
-    if settings.extra_path:
-        env["PATH"] = settings.extra_path + os.pathsep + env.get("PATH", "")
+    env = {**os.environ, "PYTHONPATH": os.pathsep.join(filter(None, [str(worker_src()), os.environ.get("PYTHONPATH")]))}
+    # the user's extra folders first, then what is already on PATH (reused), then the tools this app downloaded
+    env["PATH"] = os.pathsep.join(filter(None, [settings.extra_path, env.get("PATH"), *tool_dirs()]))
     return env
 
 
