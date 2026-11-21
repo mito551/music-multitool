@@ -1,6 +1,6 @@
 import pytest
 
-from audiotoolkit.launch import choose, preferred
+from musicmultitool.launch import choose, preferred
 
 
 def test_preferred_by_desktop():

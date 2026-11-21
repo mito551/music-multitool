@@ -1,4 +1,4 @@
-from audiotoolkit.worker.kinds.lyrics import format_lrc, format_srt, format_txt
+from musicmultitool.worker.kinds.lyrics import format_lrc, format_srt, format_txt
 
 
 def test_srt_exact():

@@ -1,8 +1,8 @@
 import subprocess
 import sys
 
-from audiotoolkit.core.protocol import Done, Failed, Job, decode_event, encode_job
-from audiotoolkit.worker.kinds.convert import build_ffmpeg_args, run
+from musicmultitool.core.protocol import Done, Failed, Job, decode_event, encode_job
+from musicmultitool.worker.kinds.convert import build_ffmpeg_args, run
 
 BASE = ["ffmpeg", "-y", "-nostdin", "-loglevel", "error"]
 
@@ -53,7 +53,7 @@ def test_convert_corrupt_input_emits_failed_and_worker_survives(tmp_path):
     bad = tmp_path / "x.mp3"
     bad.write_text("not audio")
     good = sine(tmp_path / "ok.wav", 1)
-    p = subprocess.Popen([sys.executable, "-m", "audiotoolkit.worker"], stdin=subprocess.PIPE,
+    p = subprocess.Popen([sys.executable, "-m", "musicmultitool.worker"], stdin=subprocess.PIPE,
                          stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, text=True)
     try:
         def ask(job):

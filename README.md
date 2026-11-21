@@ -1,4 +1,4 @@
-# Audio Toolkit
+# Music Multitool
 
 Batch-queue front end, in GTK4/libadwaita or Qt (PySide6), for stem separation (demucs), audio to MIDI (dettato), format
 conversion (ffmpeg), lyrics (faster-whisper, optional SynthV note lyrics), sheet-music scanning (copisteria),
@@ -9,23 +9,18 @@ installed from inside the app.
 
 ## Install
 
-Two interfaces share all the logic. `audio-toolkit` picks one: Qt on KDE, LXQt and similar desktops and on every
-non-Linux system, GTK elsewhere. Override it with `--ui gtk|qt` or Settings → General → Interface. If the chosen
-toolkit is missing, the other one is used.
-
 System packages (Fedora; other distributions have equivalents):
 
     sudo dnf install ffmpeg poppler-utils
-    sudo dnf install python3-gobject gtk4 libadwaita     # GTK interface
-    sudo dnf install python3-pyside6                     # Qt interface (or: pip install audiotoolkit[qt])
+    sudo dnf install python3-gobject gtk4 libadwaita     # GTK interface 
+    sudo dnf install python3-pyside6                     # Qt interface
 
 Both need access to the system's Python packages, so install with:
 
     pipx install --system-site-packages audiotoolkit-0.1.0-py3-none-any.whl
     audio-toolkit --install-desktop      # launcher entry and icon under ~/.local/share
 
-On Windows there is one file, `AudioToolkit.exe` (Qt interface only). Keep it anywhere; nothing is installed.
-Settings and your chains live in `%APPDATA%\AudioToolkit`, everything downloaded in `%LOCALAPPDATA%\AudioToolkit`.
+Settings and your chains live in `%APPDATA%\MusicMultitool`, everything downloaded in `%LOCALAPPDATA%\MusicMultitool`.
 ffmpeg and poppler already on PATH are reused; otherwise they, uv and a Python 3.12 are downloaded there on first setup.
 **Settings → Paths → Delete…** removes all of it again (optionally with your settings). Build it with the
 `build` GitHub Actions workflow or `pyinstaller packaging/audiotoolkit.spec` on Windows.

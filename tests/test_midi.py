@@ -1,8 +1,8 @@
 import pretty_midi
 import pytest
 
-from audiotoolkit.core.protocol import Job
-from audiotoolkit.worker.kinds.midi import run
+from musicmultitool.core.protocol import Job
+from musicmultitool.worker.kinds.midi import run
 
 
 @pytest.mark.slow

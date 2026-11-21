@@ -1,9 +1,9 @@
 import os
 
-from audiotoolkit.core.outputs import (
+from musicmultitool.core.outputs import (
     load_manifest, manifest_path, output_path, song_dir, write_manifest,
 )
-from audiotoolkit.core.protocol import Job, Output
+from musicmultitool.core.protocol import Job, Output
 
 
 def job(tmp_path, **kw):

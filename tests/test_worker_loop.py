@@ -1,11 +1,11 @@
 import subprocess
 import sys
 
-from audiotoolkit.core.protocol import Failed, Job, decode_event, encode_job
+from musicmultitool.core.protocol import Failed, Job, decode_event, encode_job
 
 
 def start():
-    return subprocess.Popen([sys.executable, "-m", "audiotoolkit.worker"], stdin=subprocess.PIPE,
+    return subprocess.Popen([sys.executable, "-m", "musicmultitool.worker"], stdin=subprocess.PIPE,
                             stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, text=True)
 
 

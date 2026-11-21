@@ -5,8 +5,8 @@ from pathlib import Path
 
 import pytest
 
-from audiotoolkit.core.protocol import Done, Failed, Job
-from audiotoolkit.core.supervisor import Supervisor
+from musicmultitool.core.protocol import Done, Failed, Job
+from musicmultitool.core.supervisor import Supervisor
 
 FAKE = [sys.executable, str(Path(__file__).parent / "fake_worker.py")]
 

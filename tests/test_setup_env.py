@@ -1,7 +1,7 @@
 from pathlib import Path
 
-from audiotoolkit.core.settings import Settings
-from audiotoolkit.core.setup_env import checkout_dir, local_checkout, plan, run_plan
+from musicmultitool.core.settings import Settings
+from musicmultitool.core.setup_env import checkout_dir, local_checkout, plan, run_plan
 
 
 def labels(steps):
@@ -68,7 +68,7 @@ def test_windows_plan_uses_uv_and_fetches_tools(tmp_path):
 
 
 def test_frozen_linux_uses_uv_without_windows_tools(tmp_path, monkeypatch):
-    from audiotoolkit.core import provision
+    from musicmultitool.core import provision
     monkeypatch.setattr(provision, "frozen", lambda: True)
     steps = dict(plan(Settings(), "x", tmp_path / "v", windows=False, nvidia=True))
     assert "Fetching uv" in steps and "Fetching ffmpeg" not in steps and "Updating pip" not in steps

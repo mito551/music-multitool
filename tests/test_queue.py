@@ -1,4 +1,4 @@
-from audiotoolkit.core.queue import BatchQueue, Status, gather_audio
+from musicmultitool.core.queue import BatchQueue, Status, gather_audio
 
 
 def touch(p):

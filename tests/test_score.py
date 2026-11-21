@@ -3,9 +3,9 @@ import xml.etree.ElementTree as ET
 
 import pytest
 
-from audiotoolkit.core.outputs import output_path
-from audiotoolkit.core.protocol import Job
-from audiotoolkit.worker.kinds.score import parse_pages, run
+from musicmultitool.core.outputs import output_path
+from musicmultitool.core.protocol import Job
+from musicmultitool.worker.kinds.score import parse_pages, run
 
 COPISTERIA = os.path.join(os.path.dirname(__file__), "..", "..", "copisteria")
 

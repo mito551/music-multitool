@@ -1,4 +1,4 @@
-from audiotoolkit.core.tapper import Tapper, relation
+from musicmultitool.core.tapper import Tapper, relation
 
 
 def test_first_tap_returns_none():

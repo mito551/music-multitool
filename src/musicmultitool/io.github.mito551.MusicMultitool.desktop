@@ -1,0 +1,10 @@
+[Desktop Entry]
+Type=Application
+Name=Music Multitool
+Comment=Separate stems, transcribe to MIDI, convert, analyze and transcribe lyrics, in batches
+Exec=@EXEC@
+Icon=music-multitool
+Terminal=false
+Categories=AudioVideo;Audio;
+StartupNotify=true
+StartupWMClass=io.github.mito551.MusicMultitool

@@ -1,8 +1,8 @@
-from audiotoolkit.core.outputs import song_dir, write_manifest
-from audiotoolkit.core.presets import Preset, Step
-from audiotoolkit.core.protocol import Done, Failed, Job, Output, Progress
-from audiotoolkit.core.queue import BatchQueue, Status
-from audiotoolkit.core.runner import BatchRunner
+from musicmultitool.core.outputs import song_dir, write_manifest
+from musicmultitool.core.presets import Preset, Step
+from musicmultitool.core.protocol import Done, Failed, Job, Output, Progress
+from musicmultitool.core.queue import BatchQueue, Status
+from musicmultitool.core.runner import BatchRunner
 
 STEMS_TO_MIDI = Preset("Stems→MIDI", (Step("separate"), Step("midi", {}, "stem:*")))
 

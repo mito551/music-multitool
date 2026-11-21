@@ -1,4 +1,4 @@
-from audiotoolkit.core.protocol import (
+from musicmultitool.core.protocol import (
     Done, Failed, Job, Output, Progress, decode_event, decode_job, encode_event, encode_job,
 )
 

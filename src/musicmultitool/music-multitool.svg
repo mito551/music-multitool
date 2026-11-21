@@ -1,0 +1,29 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" width="256" height="256">
+  <defs>
+    <linearGradient id="steel" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#c9d1d9"/><stop offset="0.5" stop-color="#f1f4f7"/><stop offset="1" stop-color="#9aa5b1"/>
+    </linearGradient>
+    <linearGradient id="red" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#e5383b"/><stop offset="1" stop-color="#a4161a"/>
+    </linearGradient>
+  </defs>
+  <rect width="256" height="256" rx="48" fill="#22223b"/>
+  <!-- beam: a saw blade joining the two stems -->
+  <path d="M82 52 L196 28 L196 66 L82 90 Z" fill="url(#steel)" stroke="#6c757d" stroke-width="3" stroke-linejoin="round"/>
+  <path d="M96 87.1 L100.5 96.1 L105.0 85.2 L109.5 94.2 L114.0 83.3 L118.5 92.3 L123.0 81.4 L127.5 90.4 L132.0 79.5 L136.5 88.5 L141.0 77.6 L145.5 86.6 L150.0 75.7 L154.5 84.7 L159.0 73.8 L163.5 82.8 L168.0 71.9 L172.5 80.9 L177.0 70.0 L181.5 79.0 L186.0 68.1" fill="url(#steel)" stroke="#6c757d" stroke-width="2.5" stroke-linejoin="round"/>
+  <!-- left stem: knife blade -->
+  <path d="M82 58 L82 176 L96 176 L96 52 Q96 36 89 28 Q82 38 82 58 Z" fill="url(#steel)" stroke="#6c757d" stroke-width="3" stroke-linejoin="round"/>
+  <line x1="89" y1="46" x2="89" y2="170" stroke="#9aa5b1" stroke-width="2"/>
+  <!-- right stem: screwdriver -->
+  <path d="M184 36 L184 168 L198 168 L198 30 L198 24 L184 24 Z" fill="url(#steel)" stroke="#6c757d" stroke-width="3" stroke-linejoin="round"/>
+  <rect x="186" y="20" width="10" height="10" rx="2" fill="#f1f4f7" stroke="#6c757d" stroke-width="3"/>
+  <!-- noteheads: red handles, the left one with the cross -->
+  <g transform="rotate(-22 70 186)">
+    <rect x="30" y="160" width="82" height="52" rx="26" fill="url(#red)" stroke="#6d0f12" stroke-width="3"/>
+  </g>
+  <g transform="rotate(-22 172 178)">
+    <rect x="132" y="152" width="82" height="52" rx="26" fill="url(#red)" stroke="#6d0f12" stroke-width="3"/>
+  </g>
+  <g fill="#fff" transform="translate(70 187) rotate(-22)"><rect x="-4" y="-14" width="8" height="28" rx="1"/><rect x="-14" y="-4" width="28" height="8" rx="1"/></g>
+  <g fill="#fff" opacity="0.9" transform="translate(172 178) rotate(-22)"><circle r="7"/></g>
+</svg>

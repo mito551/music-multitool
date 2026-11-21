@@ -1,10 +1,10 @@
 from pathlib import Path
 
-from audiotoolkit.core.presets import Preset, Step, load_presets, save_preset, select_inputs, validate_preset
-from audiotoolkit.core.protocol import Output
+from musicmultitool.core.presets import Preset, Step, load_presets, save_preset, select_inputs, validate_preset
+from musicmultitool.core.protocol import Output
 
 KINDS = ["convert", "analyze", "separate", "midi", "lyrics"]
-BUILTIN = str(Path(__file__).resolve().parents[1] / "src" / "audiotoolkit" / "presets")
+BUILTIN = str(Path(__file__).resolve().parents[1] / "src" / "musicmultitool" / "presets")
 STEMS = [Output(f"stem:{n}", f"/o/stems/{n}.wav") for n in ("vocals", "drums", "bass")]
 
 
@@ -53,7 +53,7 @@ def test_invalid_file_skipped(tmp_path):
 
 
 def test_delete_user_preset_only(tmp_path):
-    from audiotoolkit.core.presets import delete_preset
+    from musicmultitool.core.presets import delete_preset
 
     save_preset(str(tmp_path), Preset("My chain", (Step("convert"),)))
     assert delete_preset(str(tmp_path), "My chain") is True

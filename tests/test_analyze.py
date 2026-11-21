@@ -1,7 +1,7 @@
 import numpy as np
 import soundfile as sf
 
-from audiotoolkit.worker.kinds.analyze import detect, key_from_chroma
+from musicmultitool.worker.kinds.analyze import detect, key_from_chroma
 
 SR = 22050
 

@@ -7,7 +7,7 @@ os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
 from PySide6.QtWidgets import QApplication  # noqa: E402
 
-from audiotoolkit.qt.tabs import TABS  # noqa: E402
+from musicmultitool.qt.tabs import TABS  # noqa: E402
 
 
 @pytest.fixture(scope="module")
@@ -33,8 +33,8 @@ def test_hidden_and_chainable_flags(app):
 
 
 def test_window_builds_and_blocks_unsaved_chain(app, tmp_path, monkeypatch):
-    from audiotoolkit.core.settings import Settings
-    from audiotoolkit.qt.window import MainWindow
+    from musicmultitool.core.settings import Settings
+    from musicmultitool.qt.window import MainWindow
     monkeypatch.setenv("HOME", str(tmp_path))
     win = MainWindow(Settings(out_root=str(tmp_path)))
     assert win.sidebar.list.count() == 7  # six tools incl. chains + settings, analyze hidden

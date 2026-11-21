@@ -3,8 +3,8 @@ import os
 import pytest
 import torch
 
-from audiotoolkit.core.protocol import Job
-from audiotoolkit.worker.kinds.separate import run, separate_progress, two_stem
+from musicmultitool.core.protocol import Job
+from musicmultitool.worker.kinds.separate import run, separate_progress, two_stem
 
 
 def info(shift=0, offset=0, length=1000, models=1, model_idx=0):

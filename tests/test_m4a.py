@@ -2,8 +2,8 @@ import subprocess
 
 import pytest
 
-from audiotoolkit.core.protocol import Job
-from audiotoolkit.worker.kinds import analyze, convert
+from musicmultitool.core.protocol import Job
+from musicmultitool.worker.kinds import analyze, convert
 
 
 def codec(path):
@@ -44,6 +44,6 @@ def test_every_kind_reads_m4a_input(request, tmp_path, kind, fixture):
 
     src = request.getfixturevalue(fixture)
     opts = {"model_size": "tiny"} if kind == "lyrics" else {}
-    mod = importlib.import_module(f"audiotoolkit.worker.kinds.{kind}")
+    mod = importlib.import_module(f"musicmultitool.worker.kinds.{kind}")
     outputs, _ = mod.run(Job("j", kind, src, opts, str(tmp_path / "out")), no_progress)
     assert outputs

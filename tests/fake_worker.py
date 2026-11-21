@@ -3,7 +3,7 @@ import os
 import sys
 import time
 
-from audiotoolkit.core.protocol import Done, Output, decode_job, encode_event
+from musicmultitool.core.protocol import Done, Output, decode_job, encode_event
 
 for line in sys.stdin:
     job = decode_job(line)

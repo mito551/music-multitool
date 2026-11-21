@@ -1,9 +1,9 @@
-from audiotoolkit.core.settings import Settings, load_settings, save_settings
+from musicmultitool.core.settings import Settings, load_settings, save_settings
 
 
 def test_defaults_when_missing(tmp_path):
     s = load_settings(str(tmp_path / "nope.json"))
-    assert s == Settings() and s.out_root.endswith("Music/audio-toolkit") and s.skip_existing is True
+    assert s == Settings() and s.out_root.endswith("Music/music-multitool") and s.skip_existing is True
 
 
 def test_roundtrip(tmp_path):

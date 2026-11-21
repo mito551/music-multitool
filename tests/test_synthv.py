@@ -1,4 +1,4 @@
-from audiotoolkit.core.synthv import from_synthv, to_synthv
+from musicmultitool.core.synthv import from_synthv, to_synthv
 
 
 def test_next_syllable_then_continue():
@@ -12,7 +12,7 @@ def test_one_syllable_word_only_continues():
 
 
 def test_syllable_counts():
-    from audiotoolkit.core.synthv import syllables
+    from musicmultitool.core.synthv import syllables
     assert [syllables(w) for w in ("snow", "mountain", "tonight", "howling", "the", "make", "walked", "table", "isolation")] \
         == [1, 2, 2, 2, 1, 1, 1, 2, 4]
 
@@ -38,12 +38,12 @@ def test_back_counts_respellings():
 
 
 def _job(tmp_path, name, opts=None):
-    from audiotoolkit.core.protocol import Job
+    from musicmultitool.core.protocol import Job
     return Job("j", "lyrics", str(tmp_path / name), opts or {}, str(tmp_path / "out" / "song"))
 
 
 def test_reverse_job_writes_clean_text(tmp_path):
-    from audiotoolkit.worker.kinds.lyrics import run
+    from musicmultitool.worker.kinds.lyrics import run
     (tmp_path / "song.txt").write_text("Let it go\nCan't hold\n")
     (tmp_path / "song.synthv.txt").write_text("let it go + can't - hold")
     outputs, result = run(_job(tmp_path, "song.synthv.txt"), lambda *_: None)
@@ -53,7 +53,7 @@ def test_reverse_job_writes_clean_text(tmp_path):
 
 def test_reverse_job_needs_original(tmp_path):
     import pytest
-    from audiotoolkit.worker.kinds.lyrics import run
+    from musicmultitool.worker.kinds.lyrics import run
     (tmp_path / "song.synthv.txt").write_text("x")
     with pytest.raises(FileNotFoundError, match="original lyrics"):
         run(_job(tmp_path, "song.synthv.txt"), lambda *_: None)
@@ -62,7 +62,7 @@ def test_reverse_job_needs_original(tmp_path):
 def test_vocal_notes_prefers_vocals_midi(tmp_path):
     import os
     import pretty_midi
-    from audiotoolkit.worker.kinds.lyrics import _vocal_notes
+    from musicmultitool.worker.kinds.lyrics import _vocal_notes
     job = _job(tmp_path, "song.wav")
     os.makedirs(os.path.join(job.out_dir, "midi"))
     for name, start in (("bass", 5.0), ("vocals", 1.0)):
@@ -75,7 +75,7 @@ def test_vocal_notes_prefers_vocals_midi(tmp_path):
 
 
 def test_queue_lyrics_takes_synthv_txt(tmp_path):
-    from audiotoolkit.core.queue import BatchQueue
+    from musicmultitool.core.queue import BatchQueue
     q = BatchQueue()
     items = q.add([str(tmp_path / "a.synthv.txt"), str(tmp_path / "b.txt"), str(tmp_path / "c.wav")], "lyrics", {})
     assert [i.song for i in items] == ["a", "c"]
