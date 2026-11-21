@@ -28,12 +28,12 @@ On Windows there is one file, `AudioToolkit.exe` (Qt interface only). Keep it an
 Settings and your chains live in `%APPDATA%\AudioToolkit`, everything downloaded in `%LOCALAPPDATA%\AudioToolkit`.
 ffmpeg and poppler already on PATH are reused; otherwise they, uv and a Python 3.12 are downloaded there on first setup.
 **Settings → Paths → Delete…** removes all of it again (optionally with your settings). Build it with the
-`windows-exe` GitHub Actions workflow or `pyinstaller packaging/audiotoolkit.spec` on Windows.
+`build` GitHub Actions workflow or `pyinstaller packaging/audiotoolkit.spec` on Windows.
 
 On Linux there is also a single `AudioToolkit-x86_64.AppImage` (`chmod +x` and run). It uses the system's GTK interface
 when `python3` has PyGObject, GTK4 and libadwaita 1.5 or newer, and the bundled Qt interface otherwise (also on KDE-like
 desktops, or with `--ui qt`). The Qt part needs `libxcb-cursor0` (`xcb-util-cursor` on Fedora) on X11. Build it with
-`packaging/appimage.sh` or the `appimage` workflow.
+`packaging/appimage.sh` or the same `build` workflow.
 
 ## First run
 
