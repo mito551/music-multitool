@@ -1,0 +1,32 @@
+#!/usr/bin/env bash
+# Builds dist/AudioToolkit-x86_64.AppImage. It holds the bundled Qt build and the app's plain-Python source; at start AppRun
+# uses the system's GTK interface when python3 has GTK4 + libadwaita >= 1.5 (or the settings/--ui say Qt, or the desktop
+# is KDE-like), otherwise the bundled Qt build. Build on an old distribution (CI: Ubuntu 22.04) so the Qt part runs on newer ones.
+# Needs pyinstaller and PySide6 in the active Python.
+set -euo pipefail
+cd "$(dirname "${BASH_SOURCE[0]}")/.."
+ATK_ONEDIR=1 python3 -m PyInstaller --noconfirm --distpath dist --workpath build packaging/audiotoolkit.spec
+
+app=build/AppDir
+mkdir -p "$app/usr/bin" "$app/usr/lib/python"
+cp -r dist/AudioToolkit "$app/usr/bin/"
+cp -r src/audiotoolkit "$app/usr/lib/python/"
+cp src/audiotoolkit/audio-toolkit.svg "$app/audio-toolkit.svg"
+cp src/audiotoolkit/audio-toolkit.svg "$app/.DirIcon"
+sed 's|@EXEC@|AudioToolkit|' src/audiotoolkit/local.audiotoolkit.AudioToolkit.desktop > "$app/local.audiotoolkit.AudioToolkit.desktop"
+cat > "$app/AppRun" <<'EOS'
+#!/bin/sh
+HERE="$(dirname "$(readlink -f "$0")")"
+PYSRC="$HERE/usr/lib/python${PYTHONPATH:+:$PYTHONPATH}"
+ui=$(PYTHONPATH="$PYSRC" python3 -m audiotoolkit --which-ui "$@" 2>/dev/null) || ui=qt
+if [ "$ui" = gtk ]; then
+  PYTHONPATH="$PYSRC" exec python3 -m audiotoolkit --ui gtk "$@"
+fi
+exec "$HERE/usr/bin/AudioToolkit/AudioToolkit" "$@"
+EOS
+chmod +x "$app/AppRun"
+
+tool=build/appimagetool
+[ -x "$tool" ] || { curl -fsSL -o "$tool" https://github.com/AppImage/appimagetool/releases/download/continuous/appimagetool-x86_64.AppImage; chmod +x "$tool"; }
+ARCH=x86_64 "$tool" --appimage-extract-and-run "$app" dist/AudioToolkit-x86_64.AppImage
+ls -lh dist/AudioToolkit-x86_64.AppImage

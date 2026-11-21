@@ -21,9 +21,20 @@ def preferred(platform: str = sys.platform, env=None, setting: str = "auto") -> 
 
 
 def available(toolkit: str) -> bool:
-    import importlib.util
+    if toolkit == "qt":
+        import importlib.util
 
-    return importlib.util.find_spec("PySide6" if toolkit == "qt" else "gi") is not None
+        return importlib.util.find_spec("PySide6") is not None
+    try:  # the GTK interface uses Adw.Dialog and friends, which need libadwaita 1.5
+        import gi
+
+        gi.require_version("Gtk", "4.0")
+        gi.require_version("Adw", "1")
+        from gi.repository import Adw
+
+        return (Adw.get_major_version(), Adw.get_minor_version()) >= (1, 5)
+    except (ImportError, ValueError):
+        return False
 
 
 def choose(argv: list[str], setting: str = "auto", platform: str = sys.platform, env=None,
@@ -61,6 +72,9 @@ def main() -> None:
         return
     from .core.settings import load_settings
 
+    if "--which-ui" in sys.argv:  # for the AppImage's AppRun: the Qt build is bundled, GTK must come from the system
+        print(choose(sys.argv, load_settings().frontend, have=lambda t: t == "qt" or available(t))[0])
+        return
     toolkit, note = choose(sys.argv, load_settings().frontend)
     if note:
         print(note, file=sys.stderr)

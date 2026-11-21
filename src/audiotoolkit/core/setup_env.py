@@ -56,11 +56,12 @@ def plan(settings: Settings, base_python: str = sys.executable, venv: Path = WOR
     nvidia = has_nvidia() if nvidia is None else nvidia
     python = settings.worker_python or str(venv_python(venv))
     steps: list[Step] = []
-    if windows:  # no Python on a stock Windows: uv fetches one and builds the environment
-        uv = provision.tool_path("uv") or str(provision.bin_dir() / "uv" / "uv.exe")
+    if windows or provision.frozen():  # no Python to build with (a stock Windows, or a frozen app): uv fetches one
+        uv = provision.tool_path("uv") or str(provision.bin_dir() / "uv" / ("uv.exe" if windows else "uv"))
         steps.append(("Fetching uv", lambda: provision.download("uv")))
-        steps.append(("Fetching ffmpeg", lambda: provision.download("ffmpeg")))
-        steps.append(("Fetching poppler", lambda: provision.download("poppler")))
+        if windows:  # Linux users have these from their distribution
+            steps.append(("Fetching ffmpeg", lambda: provision.download("ffmpeg")))
+            steps.append(("Fetching poppler", lambda: provision.download("poppler")))
         pip = [uv, "pip", "install", "--python", python]
         if not settings.worker_python and not Path(python).is_file():
             steps.append(("Creating the environment", [uv, "venv", "--python", "3.12", str(venv)]))

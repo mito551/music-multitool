@@ -67,6 +67,14 @@ def test_windows_plan_uses_uv_and_fetches_tools(tmp_path):
     assert steps["Installing torch (CUDA)"][1:3] == ["pip", "install"] and "Updating pip" not in steps
 
 
+def test_frozen_linux_uses_uv_without_windows_tools(tmp_path, monkeypatch):
+    from audiotoolkit.core import provision
+    monkeypatch.setattr(provision, "frozen", lambda: True)
+    steps = dict(plan(Settings(), "x", tmp_path / "v", windows=False, nvidia=True))
+    assert "Fetching uv" in steps and "Fetching ffmpeg" not in steps and "Updating pip" not in steps
+    assert steps["Creating the environment"][1:3] == ["venv", "--python"]
+
+
 def test_run_plan_runs_callables_and_reports_their_errors():
     seen = []
 

@@ -1,0 +1,20 @@
+name: appimage
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+jobs:
+  build:
+    runs-on: ubuntu-22.04  # old glibc: the AppImage runs on newer systems
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: sudo apt-get update && sudo apt-get install -y libxcb-cursor0 libegl1
+      - run: pip install pyinstaller PySide6
+      - run: packaging/appimage.sh
+      - uses: actions/upload-artifact@v4
+        with:
+          name: AudioToolkit.AppImage
+          path: dist/AudioToolkit-x86_64.AppImage

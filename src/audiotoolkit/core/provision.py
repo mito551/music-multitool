@@ -4,6 +4,7 @@ from __future__ import annotations
 import os
 import shutil
 import sys
+import tarfile
 import tempfile
 import urllib.request
 import zipfile
@@ -11,8 +12,10 @@ from pathlib import Path
 
 from .paths import config_dir, data_dir
 
-URLS = {  # Windows builds
-    "uv": "https://github.com/astral-sh/uv/releases/latest/download/uv-x86_64-pc-windows-msvc.zip",
+UV_URL = {"nt": "https://github.com/astral-sh/uv/releases/latest/download/uv-x86_64-pc-windows-msvc.zip",
+          "posix": "https://github.com/astral-sh/uv/releases/latest/download/uv-x86_64-unknown-linux-gnu.tar.gz"}
+URLS = {  # Windows builds, except uv
+    "uv": UV_URL["nt" if os.name == "nt" else "posix"],
     "ffmpeg": "https://github.com/BtbN/FFmpeg-Builds/releases/latest/download/ffmpeg-master-latest-win64-gpl.zip",
     "poppler": "https://github.com/oschwartz10612/poppler-windows/releases/download/v24.08.0-0/Release-24.08.0-0.zip",
 }
@@ -48,11 +51,15 @@ def download(tool: str) -> None:
     dest = bin_dir() / tool
     dest.mkdir(parents=True, exist_ok=True)
     with tempfile.TemporaryDirectory() as tmp:
-        archive = Path(tmp) / "pkg.zip"
+        archive = Path(tmp) / "pkg"
         with urllib.request.urlopen(URLS[tool], timeout=60) as r, open(archive, "wb") as f:
             shutil.copyfileobj(r, f)
-        with zipfile.ZipFile(archive) as z:
-            z.extractall(dest)
+        if URLS[tool].endswith(".zip"):
+            with zipfile.ZipFile(archive) as z:
+                z.extractall(dest)
+        else:
+            with tarfile.open(archive) as t:
+                t.extractall(dest, filter="data")
     if not tool_path(EXE[tool]):
         raise RuntimeError(f"{tool} downloaded but {EXE[tool]} was not found in it")
 
