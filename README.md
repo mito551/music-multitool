@@ -7,6 +7,10 @@ one after another, with the results sorted into a folder per song.
 It runs on Linux (one AppImage) and Windows (one exe). Nothing heavy is installed up front: the app tells you what each
 feature does and how much disk it takes, and installs only what you choose.
 
+> **Disclaimer:** this app was developed with Claude Sonnet 5.5, an AI model from Anthropic. It has tests, but much of it
+> has only been exercised on Linux, and the Windows build has not been tried on a real Windows machine. Check results
+> that matter, and report problems in the issue tracker.
+
 ## Download
 
 Get the latest files from the [Releases](https://github.com/mito551/music-multitool/releases) page.
