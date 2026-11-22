@@ -41,19 +41,20 @@ class Voice:
 
 @dataclass
 class Params:
+    """Cost weights. Gap, overlap and voice-overlap weights fitted by scripts/fit_voices.py on music21 chorales and quartets."""
     beam: int = 64
     tau_on: float = 0.040  # seconds; onsets this close form one slice in PERFORMANCE mode
     delta_ov: float = 0.080  # seconds of overlap treated as legato
     w_pitch: float = 1.0
-    w_gap: float = 2.0
+    w_gap: float = 16.0
     w_ovl_base: float = 50.0
-    w_ovl: float = 20.0
+    w_ovl: float = 0.625
     w_range: float = 2.0
     w_cent: float = 0.3
     w_role: float = 3.0
     w_src: float = 0.5
     w_dyn: float = 1.0
-    w_vov: float = 1.5
+    w_vov: float = 0.09375
     mode: str = "auto"  # auto | quantized | performance
 
 
