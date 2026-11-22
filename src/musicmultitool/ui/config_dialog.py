@@ -57,7 +57,7 @@ class ConfigView(Gtk.Box):
         page.add(group)
         return page, group
 
-    def _entry(self, group, title: str, value: str, attr: str, key: str | None = None) -> Adw.EntryRow:
+    def _entry(self, group, title: str, value: str, attr: str, key: str | None = None, browse: bool = False) -> Adw.EntryRow:
         row = Adw.EntryRow(title=title, text=value)
 
         def changed(r):
@@ -69,12 +69,30 @@ class ConfigView(Gtk.Box):
             self._changed()
 
         row.connect("changed", changed)
+        if browse:
+            button = Gtk.Button(icon_name="folder-open-symbolic", valign=Gtk.Align.CENTER, tooltip_text="Browse…")
+            button.add_css_class("flat")
+
+            def pick(_b) -> None:
+                dialog = Gtk.FileDialog(title=title)
+
+                def done(d, result):
+                    try:
+                        folder = d.select_folder_finish(result)
+                    except GLib.Error:
+                        return
+                    row.set_text(folder.get_path())
+
+                dialog.select_folder(self.get_root(), None, done)
+
+            button.connect("clicked", pick)
+            row.add_suffix(button)
         group.add(row)
         return row
 
     def _general(self) -> Adw.PreferencesPage:
         page, g = self._page("General", "preferences-system-symbolic")
-        self._entry(g, "Output folder", self.s.out_root, "out_root")
+        self._entry(g, "Output folder", self.s.out_root, "out_root", browse=True)
         skip = Adw.SwitchRow(title="Skip existing outputs", active=self.s.skip_existing)
         skip.connect("notify::active", lambda r, _p: (setattr(self.s, "skip_existing", r.get_active()), self._changed()))
         g.add(skip)
@@ -95,7 +113,7 @@ class ConfigView(Gtk.Box):
                              "Where the projects this app wraps come from: a local checkout or a git URL (it is cloned "
                              "under ~/.local/share/music-multitool/repos). Leave a field empty to skip that tool.")
         for name in REPOS:
-            self._entry(g, f"{name}: folder or git URL", repo_path(self.s, name), "repos", name)
+            self._entry(g, f"{name}: folder or git URL", repo_path(self.s, name), "repos", name, browse=True)
         return page
 
     def show_components(self) -> None:

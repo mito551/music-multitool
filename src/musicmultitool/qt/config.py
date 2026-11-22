@@ -9,7 +9,7 @@ from pathlib import Path
 from typing import Callable
 
 from PySide6.QtCore import Signal
-from PySide6.QtWidgets import (QCheckBox, QComboBox, QFormLayout, QGroupBox, QHBoxLayout, QLabel, QLineEdit, QMessageBox, QPushButton,
+from PySide6.QtWidgets import (QCheckBox, QComboBox, QFileDialog, QFormLayout, QGroupBox, QHBoxLayout, QLabel, QLineEdit, QMessageBox, QPushButton,
                                QTabWidget, QVBoxLayout, QWidget)
 
 from musicmultitool.core.backend import repo_path, worker_cmd
@@ -58,7 +58,8 @@ class ConfigView(QWidget):
         page.body = lay  # type: ignore[attr-defined]
         return page, form
 
-    def _entry(self, form: QFormLayout, label: str, value: str, attr: str, key: str | None = None) -> QLineEdit:
+    def _entry(self, form: QFormLayout, label: str, value: str, attr: str, key: str | None = None,
+               browse: bool = False) -> QLineEdit:
         edit = QLineEdit(value)
 
         def changed(text: str) -> None:
@@ -69,7 +70,21 @@ class ConfigView(QWidget):
             self._changed()
 
         edit.textChanged.connect(changed)
-        form.addRow(label, edit)
+        if browse:
+            button = QPushButton("Browse…")
+
+            def pick() -> None:
+                folder = QFileDialog.getExistingDirectory(self, label, edit.text())
+                if folder:
+                    edit.setText(folder)
+
+            button.clicked.connect(pick)
+            row = QHBoxLayout()
+            row.addWidget(edit, 1)
+            row.addWidget(button)
+            form.addRow(label, row)
+        else:
+            form.addRow(label, edit)
         return edit
 
     def _combo(self, form: QFormLayout, label: str, values: list[str], attr: str) -> None:
@@ -81,7 +96,7 @@ class ConfigView(QWidget):
 
     def _general(self) -> QWidget:
         page, form = self._page()
-        self._entry(form, "Output folder", self.s.out_root, "out_root")
+        self._entry(form, "Output folder", self.s.out_root, "out_root", browse=True)
         skip = QCheckBox("Skip existing outputs", checked=self.s.skip_existing)
         skip.toggled.connect(lambda on: (setattr(self.s, "skip_existing", on), self._changed()))
         form.addRow("", skip)
@@ -93,7 +108,7 @@ class ConfigView(QWidget):
         page, form = self._page("Where the projects this app wraps come from: a local checkout or a git URL (it is cloned "
                                 "under ~/.local/share/music-multitool/repos). Leave a field empty to skip that tool.")
         for name in REPOS:
-            self._entry(form, f"{name}: folder or git URL", repo_path(self.s, name), "repos", name)
+            self._entry(form, f"{name}: folder or git URL", repo_path(self.s, name), "repos", name, browse=True)
         return page
 
     def show_components(self) -> None:
