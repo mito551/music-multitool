@@ -157,4 +157,21 @@ class ScoreTab(ToolTab):
         self.pages.setText(opts.get("pages", "all"))
 
 
-TABS: dict[str, type[ToolTab]] = {t.kind: t for t in (ConvertTab, SeparateTab, MidiTab, AnalyzeTab, LyricsTab, ScoreTab)}
+class VoicesTab(ToolTab):
+    kind, title, icon_name = "voices", "Voices", "view-list-symbolic"
+    chainable = False  # takes MIDI files, not audio
+
+    def build(self) -> None:
+        self.describe("Splits a polyphonic MIDI file into melodic voices, one track each. Add .mid files.")
+        self.count = self.row("Voices", spin(1, 8, 1, 4))
+        self.mode = self.row("Timing", combo(["auto", "quantized", "performance"]))
+
+    def get_opts(self) -> dict:
+        return {"voices": int(self.count.value()), "mode": self.mode.currentText()}
+
+    def set_opts(self, opts: dict) -> None:
+        self.count.setValue(opts.get("voices", 4))
+        set_combo(self.mode, opts.get("mode", "auto"))
+
+
+TABS: dict[str, type[ToolTab]] = {t.kind: t for t in (ConvertTab, SeparateTab, MidiTab, AnalyzeTab, LyricsTab, ScoreTab, VoicesTab)}

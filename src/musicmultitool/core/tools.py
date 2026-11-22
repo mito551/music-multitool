@@ -13,6 +13,7 @@ def _analyze(r: dict) -> str:
 # one-line summary of a finished item's result, by kind
 RESULT_TEXT: dict[str, Callable[[dict], str]] = {
     "analyze": _analyze,
+    "voices": lambda r: f"{r['voices']} voices, {r['notes']} notes ({r['mode'].lower()})",
     "score": lambda r: f"{r['pages']} page{'s' if r['pages'] != 1 else ''} read",
 }
 

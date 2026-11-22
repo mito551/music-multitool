@@ -10,8 +10,9 @@ from .lyrics_tab import LyricsTab
 from .midi_tab import MidiTab
 from .score_tab import ScoreTab
 from .separate_tab import SeparateTab
+from .voices_tab import VoicesTab
 
 TABS: dict[str, type[ToolTab]] = {}
 
-for _tab in (ConvertTab, SeparateTab, MidiTab, AnalyzeTab, LyricsTab, ScoreTab):
+for _tab in (ConvertTab, SeparateTab, MidiTab, AnalyzeTab, LyricsTab, ScoreTab, VoicesTab):
     TABS[_tab.kind] = _tab

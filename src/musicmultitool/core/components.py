@@ -27,6 +27,8 @@ COMPONENTS = (
               needs_torch=True, repo="demucs", note="Model weights, 80–400 MB each, download on first use."),
     Component("midi", "Audio to MIDI", "Transcribes notes and drums to a MIDI file (dettato).", 250,
               needs_torch=True, repo="dettato", note="Model weights download on first use (a few hundred MB)."),
+    Component("voices", "Voice separation", "Splits a polyphonic MIDI file into separate melodic voices (mido).", 5,
+              packages=("mido",)),
     Component("lyrics", "Lyrics", "Transcribes sung lyrics with timestamps, optional SynthV format (faster-whisper).", 250,
               packages=("faster-whisper", "huggingface_hub"),
               note="Whisper model downloads on first use: 75 MB (tiny) to 3 GB (large-v3). +1.5 GB of CUDA libraries on an NVIDIA GPU."),
