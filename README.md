@@ -1,25 +1,21 @@
 # Music Multitool
 
-One window for the chores around a piece of music: split a song into stems, turn audio into MIDI, get the lyrics, read
-a scanned score, find the tempo and key, convert and trim. Add files, press Run, and everything is queued and processed
-one after another, with the results sorted into a folder per song.
+I am sick and tired of having 50 different apps and web services for simple operations on music that I want to cover:
+stem-splitting, midi extraction, conversion, aligning lyrics with the song timing, etc. So I had Claude build me this
+app. And then I thought, hey, someone might find this useful, too.
 
-It runs on Linux (one AppImage) and Windows (one exe). Nothing heavy is installed up front: the app tells you what each
-feature does and how much disk it takes, and installs only what you choose.
-
-> **Disclaimer:** this app was developed with Claude Sonnet 5.5, an AI model from Anthropic. It has tests, but much of it
-> has only been exercised on Linux, and the Windows build has not been tried on a real Windows machine. Check results
-> that matter, and report problems in the issue tracker.
+> **Disclaimer:** this app was developed with Claude Sonnet 5.5. It has tests, but they
+> have only been run on Linux, and the Windows build has not been tested besides that.
 
 ## Download
 
 Get the latest files from the [Releases](https://github.com/mito551/music-multitool/releases) page.
 
-- **Windows:** `MusicMultitool.exe`. Keep it anywhere and double-click it. Nothing else to install.
+- **Windows:** `MusicMultitool.exe`. Run it from anywhere, it'll guide you through what it needs.
 - **Linux:** `MusicMultitool-x86_64.AppImage`. Make it executable (`chmod +x`) and run it. See
-  [Dependencies](#dependencies) for the few system packages it uses.
+  [Dependencies](#dependencies) for the system packages it uses.
 
-On first start the app opens **Settings → Components**. Pick the features you want, check the sizes, press **Install
+On first start the app opens **Settings → Components**. Pick the features you want, press **Install
 selected**. You can come back any time to add more.
 
 ## What it does
@@ -32,15 +28,15 @@ section by start and end time.
 choose the model (`htdemucs`, `htdemucs_ft`, `htdemucs_6s`, `mdx_extra`), the number of shifts (more is slower and
 slightly better) and the output format.
 
-**Transcribe.** Turns audio into a MIDI file with dettato; pitched instruments and drums come out as separate
-tracks. Run it after Separate to transcribe each stem on its own (the *Stems → MIDI* chain does exactly that).
+**Transcribe.** Turns audio into a MIDI file with dettato. It automatically detects what instruments an audio has
+and outputs a midi with those tracks already separated. Run it after Separate to transcribe each stem on its own 
+(the *Stems → MIDI* chain).
 
 **Lyrics.** Writes the lyrics of a song with timestamps as `.srt`, `.lrc` and plain `.txt`, using Whisper. Pick the
-model size (tiny to large-v3), or leave the language on auto.
-*SynthV lyrics:* turn on the option and the app also writes `<song>.synthv.txt`, the words spread over the notes of the
-song's vocal MIDI: the first note carries the word, `+` is the next syllable on a new note, `-` continues the previous
-syllable on a new note. Run Transcribe on the vocals first, or pick a MIDI file yourself. Drop a `.synthv.txt` on the
-Lyrics tab, with the original `.txt` next to it, to get clean lyrics back with the original line breaks.
+model size (tiny to large-v3), and lyrics language. By default it identifies it on its own. 
+*SynthV lyrics:* for my fellow vocal synth appreciators: a simple tool that spreads the lyrics over the vocal notes,
+and you can bring your own midi if you already have it. I don't expect it to be 100% accurate, but with enough
+referencing material, it should have less cleanup to do rather than do it manually.
 
 **Scan score.** Reads scanned sheet music, images or PDFs, into MusicXML with copisteria, one file per page. Choose
 the detector size (28m is the default, 2m is smaller) and which PDF pages to read (`all`, `3`, `2-5`).
@@ -57,13 +53,14 @@ to the detected one and says whether they match, or one is half or double the ot
 - *Full breakdown:* convert, analyse, split, then MIDI for each stem
 
 Build your own on the Chains tab: add steps, choose each step's tool and which earlier result it reads, set its options,
-and save it under a name. Your own chains can be deleted again; the built-in ones can't.
+and save it under a name.
 
 ### The queue
 
 Add files with *Add files…* and *Add folder…* in the sidebar, or drag them onto the window. Each file becomes a queue
-item for the tool you are on. **Run** processes them one at a time; **Cancel** stops the current one; **Retry failed**
-and **Clear done** do what they say. The pencil on an item sets options for just that file, and the folder button
+item for the tool you are on, listed in the bottom right panel. **Run** processes them one at a time; **Cancel** 
+stops the current one; **Retry failed** and **Clear done** do what they say. 
+The pencil on an item sets options for just that file, and the folder button
 opens its results. With **Skip existing** on, anything already done is not redone.
 
 Results go to the output folder (default `~/Music/music-multitool`, change it at the bottom right), one folder per song:
@@ -81,26 +78,6 @@ The same file run through several tools lands in the same song folder.
 - **Paths:** use your own Python for the processing, add folders with ffmpeg or poppler, see what was found, and
   **Delete…** to remove everything the app downloaded (optionally your settings too).
 
-## Components and disk space
-
-Sizes are approximate disk use; downloads are smaller. Whisper and the other models download the first time you use
-them.
-
-| Component | What it adds | Disk |
-|---|---|---|
-| Convert / Trim | the small processing environment (uses ffmpeg) | 20 MB |
-| BPM & key detection | librosa and friends | 400 MB |
-| Stem separation | demucs (model weights 80–400 MB on first use) | 120 MB |
-| Audio to MIDI | dettato (model weights on first use) | 250 MB |
-| Lyrics | faster-whisper (model 75 MB to 3 GB on first use) | 250 MB |
-| Sheet-music scan | copisteria (+130 MB of weights) | 350 MB |
-| PyTorch, shared by separation, MIDI and scanning | CUDA build with an NVIDIA GPU: about 6.5 GB (Linux) or 4.5 GB (Windows); CPU-only: about 0.7 GB | see left |
-| CUDA libraries for Lyrics | only with an NVIDIA GPU | 1.5 GB |
-| ffmpeg (Windows only, if not found) | | 280 MB |
-
-With an NVIDIA GPU, the **Use the NVIDIA GPU** switch decides between the large CUDA build and the small CPU build. The
-CPU build works everywhere, just more slowly.
-
 ## Dependencies
 
 **What you need on your system**
@@ -117,7 +94,7 @@ On Fedora: `sudo dnf install fuse-libs poppler-utils xcb-util-cursor` plus ffmpe
 On Debian and Ubuntu: `sudo apt install libfuse2 ffmpeg poppler-utils libxcb-cursor0`.
 
 On GNOME and similar desktops the AppImage uses your system's GTK4 and libadwaita (1.5 or newer) for a native look, if
-`python3-gobject`, `gtk4` and `libadwaita` are installed; otherwise, and on KDE, it uses its bundled Qt interface. You
+`python3-gobject`, `gtk4` and `libadwaita` are installed; otherwise, it uses its bundled Qt interface. You
 can force one in Settings → General or with `--ui gtk` or `--ui qt`.
 
 **What the app downloads when you ask for it**

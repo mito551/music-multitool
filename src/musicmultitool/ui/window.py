@@ -173,6 +173,9 @@ class MainWindow(Adw.ApplicationWindow):
         self._save()
 
     def _run(self, *_) -> None:
+        for i in self.backend.queue.items:  # pending items follow the tab's current settings unless overridden
+            if i.status is Status.PENDING and not i.overrides and i.kind in self.tabs:
+                i.opts = self.tabs[i.kind].get_opts()
         self._save()
         self.backend.start()
 

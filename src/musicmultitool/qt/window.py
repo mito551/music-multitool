@@ -177,6 +177,9 @@ class MainWindow(QMainWindow):
             self.sidebar.set_key(item.result.get("key"), item.result.get("key_confidence", 0.0))
 
     def _run(self) -> None:
+        for i in self.backend.queue.items:  # pending items follow the tab's current settings unless overridden
+            if i.status is Status.PENDING and not i.overrides and i.kind in self.tabs:
+                i.opts = self.tabs[i.kind].get_opts()
         self._save()
         self.backend.start()
 
