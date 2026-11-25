@@ -1,0 +1,13 @@
+.sidebar-pane { background-color: color-mix(in srgb, @window_bg_color 70%, black); }
+.content-pane { background-color: @window_bg_color; }
+
+.nav-list { background: transparent; padding: 4px 0 8px 10px; }
+.nav-list row { min-height: 44px; margin: 2px 0; padding: 0 16px; border-radius: 12px 0 0 12px; }
+.nav-list row:hover { background-color: alpha(@window_fg_color, 0.06); }
+.nav-list row:selected { background-color: @window_bg_color; color: @window_fg_color; }
+
+.tap-button { font-weight: 800; font-size: 18px; }
+
+.form-area, .form-area > viewport { background-color: @window_bg_color; }
+
+.status-pill { background-color: alpha(@window_fg_color, 0.08); border-radius: 999px; padding: 4px 14px; }

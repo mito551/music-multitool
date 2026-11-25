@@ -1,0 +1,25 @@
+{
+  "name": "Full breakdown",
+  "steps": [
+    {
+      "kind": "convert",
+      "opts": {},
+      "input": "source"
+    },
+    {
+      "kind": "analyze",
+      "opts": {},
+      "input": "audio"
+    },
+    {
+      "kind": "separate",
+      "opts": {},
+      "input": "audio"
+    },
+    {
+      "kind": "midi",
+      "opts": {},
+      "input": "stem:*"
+    }
+  ]
+}

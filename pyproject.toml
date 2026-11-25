@@ -1,0 +1,33 @@
+[build-system]
+requires = ["setuptools>=64"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "musicmultitool"
+version = "0.1.0"
+description = "GTK4 front end for stem separation, audio-to-MIDI, lyrics, sheet-music scanning and small audio tools"
+readme = "README.md"
+requires-python = ">=3.10"
+license = {file = "LICENSE"}
+classifiers = ["License :: OSI Approved :: GNU General Public License v3 (GPLv3)", "Environment :: X11 Applications :: GTK", "Topic :: Multimedia :: Sound/Audio"]
+# No dependencies on purpose: PyGObject/GTK4/libadwaita come from the system, and the heavy worker environment (torch,
+# demucs, dettato, copisteria, ...) is built from the app's Settings.
+dependencies = []
+
+[project.optional-dependencies]
+qt = ["PySide6>=6.5"]  # the Qt interface; Windows needs it, Linux can use the distribution's python3-pyside6
+
+[project.scripts]
+music-multitool = "musicmultitool.launch:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+musicmultitool = ["presets/*.json", "ui/style.css", "*.svg", "*.png", "*.desktop"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+markers = ["slow: loads real models"]
+pythonpath = ["src"]
+addopts = "-m 'not slow'"

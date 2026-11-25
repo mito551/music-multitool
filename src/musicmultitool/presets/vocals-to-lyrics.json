@@ -1,0 +1,17 @@
+{
+  "name": "Vocals → Lyrics",
+  "steps": [
+    {
+      "kind": "separate",
+      "opts": {
+        "stems": "vocals"
+      },
+      "input": "source"
+    },
+    {
+      "kind": "lyrics",
+      "opts": {},
+      "input": "stem:vocals"
+    }
+  ]
+}
