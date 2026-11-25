@@ -3,7 +3,7 @@ from __future__ import annotations
 
 import os
 
-from PySide6.QtCore import QEvent, Qt
+from PySide6.QtCore import QEvent, Qt, QTimer
 from PySide6.QtWidgets import (QAbstractSpinBox, QApplication, QCheckBox, QComboBox, QDialog, QDialogButtonBox, QFileDialog,
                                QHBoxLayout, QLabel, QLineEdit, QMainWindow, QPlainTextEdit, QPushButton, QScrollArea,
                                QSplitter, QStackedWidget, QTextEdit, QVBoxLayout, QWidget)
@@ -81,9 +81,19 @@ class MainWindow(QMainWindow):
         self.setCentralWidget(self.hsplit)
         self.sidebar.select(next(iter(self.tabs)))
         if not installed() and not worker_ready(settings):  # first run: nothing is installed unasked, so offer the choice
-            self.sidebar.select("settings")
-            self.config.show_components()
+            QTimer.singleShot(0, self._offer_install)
         QApplication.instance().installEventFilter(self)
+
+    def _offer_install(self) -> None:
+        d = QDialog(self)
+        d.setWindowTitle("Install tools and models")
+        d.resize(560, 460)
+        lay = QVBoxLayout(d)
+        lay.addWidget(ConfigView(self.settings, self._config_changed, self.backend.close, compact=True))
+        box = QDialogButtonBox(QDialogButtonBox.Close)
+        box.rejected.connect(d.reject)
+        lay.addWidget(box)
+        d.open()
 
     def _add_tab(self, kind: str, tab: ToolTab) -> None:
         tab.set_opts(self.settings.tab_opts.get(kind, {}))

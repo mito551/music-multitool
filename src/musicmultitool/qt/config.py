@@ -32,7 +32,8 @@ class ConfigView(QWidget):
     _progress = Signal(str)  # a background step reports from its thread
     _finished = Signal(str, str)  # which job, error text ("" = ok)
 
-    def __init__(self, settings: Settings, on_changed: Callable[[], None], stop_worker: Callable[[], None]):
+    def __init__(self, settings: Settings, on_changed: Callable[[], None], stop_worker: Callable[[], None],
+                 compact: bool = False):  # compact: only the Components page, for the first-run pop-up
         super().__init__()
         self.s, self._changed, self._stop_worker = settings, on_changed, stop_worker
         self.note = QLabel(wordWrap=True, enabled=False)
@@ -41,6 +42,7 @@ class ConfigView(QWidget):
         for title, build in (("Components", self._components), ("General", self._general), ("Repos", self._repos),
                              ("Models", self._models), ("Paths", self._paths)):
             tabs.addTab(build(), title)
+        tabs.tabBar().setVisible(not compact)
         lay = QVBoxLayout(self)
         lay.addWidget(tabs, 1)
         lay.addWidget(self.note)

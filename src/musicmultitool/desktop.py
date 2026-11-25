@@ -18,10 +18,10 @@ def launcher() -> str:
 
 def install(data_home: Path | None = None) -> Path:
     data = data_home or Path(os.environ.get("XDG_DATA_HOME") or Path.home() / ".local" / "share")
-    apps, icons = data / "applications", data / "icons" / "hicolor" / "scalable" / "apps"
+    apps, icons = data / "applications", data / "icons" / "hicolor" / "256x256" / "apps"
     apps.mkdir(parents=True, exist_ok=True)
     icons.mkdir(parents=True, exist_ok=True)
     target = apps / f"{APP_ID}.desktop"
     target.write_text((HERE / f"{APP_ID}.desktop").read_text().replace("@EXEC@", launcher()))
-    shutil.copy(HERE / "music-multitool.svg", icons / "music-multitool.svg")
+    shutil.copy(HERE / "music-multitool.png", icons / "music-multitool.png")
     return target

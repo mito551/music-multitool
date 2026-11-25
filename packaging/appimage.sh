@@ -11,8 +11,8 @@ app=build/AppDir
 mkdir -p "$app/usr/bin" "$app/usr/lib/python"
 cp -r dist/MusicMultitool "$app/usr/bin/"
 cp -r src/musicmultitool "$app/usr/lib/python/"
-cp src/musicmultitool/music-multitool.svg "$app/music-multitool.svg"
-cp src/musicmultitool/music-multitool.svg "$app/.DirIcon"
+cp src/musicmultitool/music-multitool.png "$app/music-multitool.png"
+cp src/musicmultitool/music-multitool.png "$app/.DirIcon"
 sed 's|@EXEC@|MusicMultitool|' src/musicmultitool/io.github.mito551.MusicMultitool.desktop > "$app/io.github.mito551.MusicMultitool.desktop"
 cat > "$app/AppRun" <<'EOS'
 #!/bin/sh

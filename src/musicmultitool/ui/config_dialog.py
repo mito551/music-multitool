@@ -39,7 +39,8 @@ def _run_async(cmd: list[str], done: Callable[[bool, str], None]) -> None:
 
 
 class ConfigView(Gtk.Box):
-    def __init__(self, settings: Settings, on_changed: Callable[[], None], stop_worker: Callable[[], None]):
+    def __init__(self, settings: Settings, on_changed: Callable[[], None], stop_worker: Callable[[], None],
+                 compact: bool = False):  # compact: only the Components page, for the first-run pop-up
         super().__init__(orientation=Gtk.Orientation.VERTICAL, spacing=6)
         self.s, self._changed, self._stop_worker = settings, on_changed, stop_worker
         stack = self.stack = Adw.ViewStack()
@@ -47,6 +48,7 @@ class ConfigView(Gtk.Box):
             stack.add_titled_with_icon(page, page.get_title().lower(), page.get_title(), page.get_icon_name())
         switcher = Adw.ViewSwitcher(stack=stack, policy=Adw.ViewSwitcherPolicy.WIDE, halign=Gtk.Align.CENTER, margin_top=12)
         self.note = Gtk.Label(xalign=0, css_classes=["dim-label"], margin_start=24, margin_bottom=6)  # replaces toasts
+        switcher.set_visible(not compact)
         for w in (switcher, stack, self.note):
             self.append(w)
         stack.set_vexpand(True)

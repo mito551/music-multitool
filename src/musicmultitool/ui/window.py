@@ -75,9 +75,12 @@ class MainWindow(Adw.ApplicationWindow):
         self.set_content(self.root)
         self.sidebar.select(next(iter(self.tabs)))
         if not installed() and not worker_ready(settings):  # first run: nothing is installed unasked, so offer the choice
-            self.sidebar.select("settings")
-            self.config.show_components()
+            GLib.idle_add(self._offer_install)
         self.connect("close-request", self._on_close)
+
+    def _offer_install(self) -> None:
+        view = ConfigView(self.settings, self._config_changed, self.backend.close, compact=True)
+        Adw.Dialog(title="Install tools and models", child=view, content_width=560, content_height=480).present(self)
 
     def _add_tab(self, kind: str, tab) -> None:
         tab.set_opts(self.settings.tab_opts.get(kind, {}))
